@@ -1,0 +1,15 @@
+/obj
+/unused
+*.bak
+*.dof
+*.dsk
+*.cfg
+*.map
+*.sym
+__pycache__
+/profile/*.txt
+@usage.bat
+*.ihx
+*.noi
+/.vscode
+/*.cdb
