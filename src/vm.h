@@ -47,7 +47,7 @@ void jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
 void systime(SCRIPT_CTX * THIS) __banked;
 void invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
 void beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
-void nop() __banked;
+void ifcond(SCRIPT_CTX * THIS, UBYTE condition, UBYTE * pc) __banked;
 void debug(SCRIPT_CTX * THIS, char * str) __banked;
 
 // return zero if script end

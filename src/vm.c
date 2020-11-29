@@ -25,7 +25,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&systime,      0}, // 0x0C
     {&invoke,       4}, // 0x0D
     {&beginthread,  3}, // 0x0E
-    {&nop,          0}, // 0x0F
+    {&ifcond,       3}, // 0x0F
     {&debug,        2}, // 0x10
 };
 
@@ -155,8 +155,19 @@ void beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked {
     THIS; // suppress warnings
     ExecuteScript(bank, pc);
 }
-// no operation
-void nop() __banked {
+// if condition; compares two arguments on VM stack
+void ifcond(SCRIPT_CTX * THIS, UBYTE condition, UBYTE * pc) __banked {
+    INT16 * stack_frame = (void *)(THIS->stack_ptr - 2);
+    UBYTE res = 0;
+    switch (condition) {
+        case 0: res = (stack_frame[0] == stack_frame[1]); break;
+        case 1: res = (stack_frame[0] <  stack_frame[1]); break;
+        case 2: res = (stack_frame[0] >  stack_frame[1]); break;
+        case 3: res = (stack_frame[0] <= stack_frame[1]); break;
+        case 4: res = (stack_frame[0] >= stack_frame[1]); break;
+    }
+    if (res) THIS->PC = pc;
+    THIS->stack_ptr -= 2;
 }
 // prints debug string
 void debug(SCRIPT_CTX * THIS, char * str) __banked {

@@ -8,13 +8,19 @@ ___bank_BYTECODE = 3
 .globl ___bank_BYTECODE
 
 _BYTECODE::
-        VM_NOP
         VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1
         VM_PUSH         2               ; push do..while loop count
 1$:    
         VM_CALL_REL     2$
         VM_LOOP_REL     1$
-        VM_NOP
+        VM_PUSH         7
+        VM_PUSH         8
+        VM_IF EQUAL     3$
+        VM_DEBUG        s_not_equal
+        VM_JUMP_REL     4$
+3$:     
+        VM_DEBUG        s_equal
+4$:
         VM_CALL_FAR     ___bank_libfuncs, _LIBFUNC01
         VM_DEBUG        s_main_trmt
         VM_STOP
@@ -51,3 +57,6 @@ s_libfunc:      .asciz "LIBFUNC01()"
 
 s_thread_strt:  .asciz "Thread started"
 s_thread_trmt:  .asciz "Thread terminated"
+
+s_equal:        .asciz "Equal"
+s_not_equal:    .asciz "Not equal"

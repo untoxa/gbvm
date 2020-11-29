@@ -78,9 +78,14 @@ OP_VM_BEGINTHREAD  = 0x0E
         .db OP_VM_BEGINTHREAD, #>ARG1, #<ARG1, #<ARG0
 .endm
 
-OP_VM_NOP          = 0x0F
-.macro VM_NOP
-        .db OP_VM_NOP
+OP_VM_IF           = 0x0F
+EQUAL              = 0
+LESS               = 1
+GREATER            = 2
+LE_EQ              = 3
+GR_EQ              = 4
+.macro VM_IF CONDITION, LABEL
+        .db OP_VM_IF, #>LABEL, #<LABEL, #<CONDITION
 .endm
 
 OP_VM_DEBUG        = 0x10
