@@ -158,13 +158,16 @@ void beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked {
 // if condition; compares two arguments on VM stack
 void ifcond(SCRIPT_CTX * THIS, UBYTE condition, UBYTE * pc) __banked {
     INT16 * stack_frame = (void *)(THIS->stack_ptr - 2);
+    INT16 A = *stack_frame++;
+    INT16 B = *stack_frame;
+printf("%d ? %d\n", A, B);    
     UBYTE res = 0;
     switch (condition) {
-        case 0: res = (stack_frame[0] == stack_frame[1]); break;
-        case 1: res = (stack_frame[0] <  stack_frame[1]); break;
-        case 2: res = (stack_frame[0] >  stack_frame[1]); break;
-        case 3: res = (stack_frame[0] <= stack_frame[1]); break;
-        case 4: res = (stack_frame[0] >= stack_frame[1]); break;
+        case 0: res = (A == B); break;
+        case 1: res = (A <  B); break;
+        case 2: res = (A >  B); break;
+        case 3: res = (A <= B); break;
+        case 4: res = (A >= B); break;
     }
     if (res) THIS->PC = pc;
     THIS->stack_ptr -= 2;
