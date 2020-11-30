@@ -10,18 +10,22 @@ ___bank_BYTECODE = 3
 _BYTECODE::
         VM_RESERVE      2               ; reserve 2 words for globals        
         VM_PUSH         2               ; push do..while loop count
+        VM_SET          0, -1           ; set global[0] to (SP-1)
+        VM_SET_CONST    1, 2            ; set global[1] to 2
+        VM_IF EQUAL     0, 1, 1$, 0     ; compare global[0] with global[1]; jump to 1$ if EQUAL; don't cleanup stack
+        VM_DEBUG        s_error
+        VM_STOP
 1$:    
         VM_CALL_REL     2$
         VM_LOOP_REL     1$              ; test loop 
 
         VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1
 
-        VM_PUSH         3
-        VM_PUSH         3 
+        VM_PUSH         3               ; value A to compare
+        VM_PUSH         3               ; value B to compare
 
         VM_PUSHVALUE    -2              ; test pushvalue, value == 3 must be pushed
 5$:    
-        VM_CALL_REL     2$
         VM_LOOP_REL     5$
 
         VM_IF EQUAL     -1, -2, 3$, 2   ; compare (SP-1) with (SP-2); jump to 3$ if EQUAL; cleanup 2 arguments from stack
@@ -69,3 +73,5 @@ s_thread_trmt:  .asciz "Thread terminated"
 
 s_equal:        .asciz "Equal"
 s_not_equal:    .asciz "Not equal"
+
+s_error:        .asciz "!ERROR!"

@@ -98,7 +98,17 @@ OP_VM_PUSHVALUE    = 0x11
         .db OP_VM_PUSHVALUE, #<ARG0
 .endm
 
-OP_VM_RESERVE    = 0x11
+OP_VM_RESERVE    = 0x12
 .macro VM_RESERVE ARG0
         .db OP_VM_RESERVE, #<ARG0
+.endm
+
+OP_VM_SET        = 0x13
+.macro VM_SET IDXA, IDXB
+        .db OP_VM_SET, #<IDXB, #<IDXA
+.endm
+
+OP_VM_SET_CONST  = 0x14
+.macro VM_SET_CONST IDX, VAL
+        .db OP_VM_SET_CONST, #>VAL, #<VAL, #<IDX
 .endm

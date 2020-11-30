@@ -33,24 +33,26 @@ typedef struct SCRIPT_CTX {
 #define SCRIPT_MAX_CONTEXTS 10
 
 // script core functions
-void push(SCRIPT_CTX * THIS, UWORD value) __banked;
-UWORD pop(SCRIPT_CTX * THIS, UBYTE n) __banked;
-void call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
-void call(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
-void ret(SCRIPT_CTX * THIS) __banked;
-void call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
-void ret_far(SCRIPT_CTX * THIS) __banked;
-void loop_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
-void loop(SCRIPT_CTX * THIS, UINT8 * pc) __banked;
-void jump_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
-void jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
-void systime(SCRIPT_CTX * THIS) __banked;
-void invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
-void beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
-void ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE * pc, UBYTE n) __banked;
-void debug(SCRIPT_CTX * THIS, char * str) __banked;
-void pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked;
-void reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked;
+void vm_push(SCRIPT_CTX * THIS, UWORD value) __banked;
+UWORD vm_pop(SCRIPT_CTX * THIS, UBYTE n) __banked;
+void vm_call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
+void vm_call(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
+void vm_ret(SCRIPT_CTX * THIS) __banked;
+void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
+void vm_ret_far(SCRIPT_CTX * THIS) __banked;
+void vm_loop_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
+void vm_loop(SCRIPT_CTX * THIS, UINT8 * pc) __banked;
+void vm_jump_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
+void vm_jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
+void vm_systime(SCRIPT_CTX * THIS) __banked;
+void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
+void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
+void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE * pc, UBYTE n) __banked;
+void vm_debug(SCRIPT_CTX * THIS, char * str) __banked;
+void vm_pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked;
+void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked;
+void vm_set(SCRIPT_CTX * THIS, INT8 idxA, INT8 idxB) __banked;
+void vm_set_const(SCRIPT_CTX * THIS, INT8 idx, UWORD value) __banked;
 
 // return zero if script end
 // bank with VM code must be active
