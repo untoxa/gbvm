@@ -79,11 +79,12 @@ OP_VM_BEGINTHREAD  = 0x0E
 .endm
 
 OP_VM_IF           = 0x0F
-EQUAL              = 0
-LESS               = 1
-GREATER            = 2
-LE_EQ              = 3
-GR_EQ              = 4
+.EQ                = 0
+.LT                = 1
+.LTE               = 2
+.GT                = 3
+.GTE               = 4
+.NE                = 5
 .macro VM_IF CONDITION, IDXA, IDXB, LABEL, N
         .db OP_VM_IF, #<N, #>LABEL, #<LABEL, #<IDXB, #<IDXA, #<CONDITION
 .endm
@@ -111,4 +112,12 @@ OP_VM_SET        = 0x13
 OP_VM_SET_CONST  = 0x14
 .macro VM_SET_CONST IDX, VAL
         .db OP_VM_SET_CONST, #>VAL, #<VAL, #<IDX
+.endm
+
+OP_VM_RPN        = 0x15
+.RPN_STOP        = 0
+.TYP_B           = -1
+.TYP_W           = -2
+.macro VM_RPN
+        .db OP_VM_RPN
 .endm

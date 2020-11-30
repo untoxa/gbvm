@@ -30,6 +30,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_reserve,      1}, // 0x12
     {&vm_set,          2}, // 0x13
     {&vm_set_const,    3}, // 0x14
+    {&vm_rpn,          0}, // 0x15
 };
 
 
@@ -169,9 +170,10 @@ void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE *
     switch (condition) {
         case 0: res = (A == B); break;
         case 1: res = (A <  B); break;
-        case 2: res = (A >  B); break;
-        case 3: res = (A <= B); break;
+        case 2: res = (A <= B); break;
+        case 3: res = (A >  B); break;
         case 4: res = (A >= B); break;
+        case 5: res = (A != B); break;
     }
     if (res) THIS->PC = pc;
     THIS->stack_ptr -= n;
@@ -206,6 +208,57 @@ void vm_set_const(SCRIPT_CTX * THIS, INT8 idx, UWORD value) __banked {
     if (idx < 0) A = THIS->stack_ptr + idx; else A = &(THIS->stack[idx]);
     *A = value;
 }
+// rpn calculator; must be __nonbanked because we access VM bytecode
+void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
+    dummy0; dummy1;
+    UBYTE _save = _current_bank;
+    INT16 * A, * B;
+    SWITCH_ROM_MBC1(THIS->bank);
+    while (1) {
+        UBYTE op = *(THIS->PC++); 
+        switch (op) {
+            case '+':
+                A = THIS->stack_ptr - 2; B = A + 1;
+                *A = *A + *B;
+                THIS->stack_ptr--;
+                break;
+            case '-':
+                A = THIS->stack_ptr - 2; B = A + 1;
+                *A = *A - *B;
+                THIS->stack_ptr--;
+                break;
+            case '*':
+                A = THIS->stack_ptr - 2; B = A + 1;
+                *A = (*A) * (*B);
+                THIS->stack_ptr--;
+                break;
+            case '/':
+                A = THIS->stack_ptr - 2; B = A + 1;
+                *A = *A / *B;
+                THIS->stack_ptr--;
+                break;
+            case '%':
+                A = THIS->stack_ptr - 2; B = A + 1;
+                *A = *A % *B;
+                THIS->stack_ptr--;
+                break;
+            case 0xfe: 
+                *(THIS->stack_ptr) = *((UWORD *)(THIS->PC));
+                THIS->stack_ptr++;
+                THIS->PC += 2;
+                break;
+            case 0xff: 
+                *(THIS->stack_ptr) = (UWORD)*(THIS->PC);
+                THIS->stack_ptr++;
+                THIS->PC++;
+                break;
+            default:
+                SWITCH_ROM_MBC1(_save);
+                return;
+        }
+    }
+}
+
 
 // return zero if script end
 // bank with VM code must be active

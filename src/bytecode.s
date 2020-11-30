@@ -8,11 +8,14 @@ ___bank_BYTECODE = 3
 .globl ___bank_BYTECODE
 
 _BYTECODE::
-        VM_RESERVE      2               ; reserve 2 words for globals        
-        VM_PUSH         2               ; push do..while loop count
+        VM_RESERVE      2               ; reserve 2 words for globals
+        
+        VM_RPN
+        .db .TYP_B, 5, .TYP_B, 3, "-", .RPN_STOP   ; push(5 - 3)
+
         VM_SET          0, -1           ; set global[0] to (SP-1)
         VM_SET_CONST    1, 2            ; set global[1] to 2
-        VM_IF EQUAL     0, 1, 1$, 0     ; compare global[0] with global[1]; jump to 1$ if EQUAL; don't cleanup stack
+        VM_IF .EQ       0, 1, 1$, 0     ; compare global[0] with global[1]; jump to 1$ if EQUAL; don't cleanup stack
         VM_DEBUG        s_error
         VM_STOP
 1$:    
@@ -28,7 +31,7 @@ _BYTECODE::
 5$:    
         VM_LOOP_REL     5$
 
-        VM_IF EQUAL     -1, -2, 3$, 2   ; compare (SP-1) with (SP-2); jump to 3$ if EQUAL; cleanup 2 arguments from stack
+        VM_IF .EQ       -1, -2, 3$, 2   ; compare (SP-1) with (SP-2); jump to 3$ if EQUAL; cleanup 2 arguments from stack
         VM_DEBUG        s_not_equal
         VM_JUMP_REL     4$
 3$:     

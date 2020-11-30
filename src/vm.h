@@ -53,6 +53,7 @@ void vm_pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked;
 void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void vm_set(SCRIPT_CTX * THIS, INT8 idxA, INT8 idxB) __banked;
 void vm_set_const(SCRIPT_CTX * THIS, INT8 idx, UWORD value) __banked;
+void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked;
 
 // return zero if script end
 // bank with VM code must be active
