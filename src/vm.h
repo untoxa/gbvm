@@ -23,8 +23,8 @@ typedef struct SCRIPT_CTX {
   // update function
   FAR_PTR update_fn;
   // VM stack 
-  const UBYTE ** stack_ptr;       // stack pointer
-  const UBYTE * stack[16];        // maximum stack depth is 16 words
+  UWORD * stack_ptr;        // stack pointer
+  UWORD stack[16];          // maximum stack depth is 16 words
 } SCRIPT_CTX;
 
 #define INSTRUCTION_SIZE 1
@@ -34,7 +34,7 @@ typedef struct SCRIPT_CTX {
 
 // script core functions
 void push(SCRIPT_CTX * THIS, UWORD value) __banked;
-const UBYTE * pop(SCRIPT_CTX * THIS, UBYTE n) __banked;
+UWORD pop(SCRIPT_CTX * THIS, UBYTE n) __banked;
 void call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void call(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
 void ret(SCRIPT_CTX * THIS) __banked;
@@ -49,6 +49,7 @@ void invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
 void beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
 void ifcond(SCRIPT_CTX * THIS, UBYTE condition, UBYTE * pc) __banked;
 void debug(SCRIPT_CTX * THIS, char * str) __banked;
+void pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked;
 
 // return zero if script end
 // bank with VM code must be active

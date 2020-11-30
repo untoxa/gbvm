@@ -21,12 +21,12 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&jump,         2}, // 0x09
     {&call_far,     3}, // 0x0A
     {&ret_far,      0}, // 0x0B
-
     {&systime,      0}, // 0x0C
     {&invoke,       4}, // 0x0D
     {&beginthread,  3}, // 0x0E
     {&ifcond,       3}, // 0x0F
     {&debug,        2}, // 0x10
+    {&pushvalue,    1}, // 0x11
 };
 
 
@@ -45,7 +45,7 @@ SCRIPT_CTX * first_ctx, * free_ctxs;
 // this is a call instruction, it pushes return address onto VM stack
 void call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked {
     // push current VM PC onto VM stack
-    *(THIS->stack_ptr) = THIS->PC;
+    *(THIS->stack_ptr) = (UWORD)THIS->PC;
     THIS->stack_ptr++;
     // modify VM PC (goto PC + ofs)
     // pc is a pointer, you may point to any other script wherever you want
@@ -54,7 +54,7 @@ void call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked {
 }
 // call absolute instruction
 void call(SCRIPT_CTX * THIS, UBYTE * pc) __banked {
-    *(THIS->stack_ptr) = THIS->PC;
+    *(THIS->stack_ptr) = (UWORD)THIS->PC;
     THIS->stack_ptr++;
     THIS->PC = pc;    
 }
@@ -62,14 +62,14 @@ void call(SCRIPT_CTX * THIS, UBYTE * pc) __banked {
 void ret(SCRIPT_CTX * THIS) __banked {
     // pop VM PC from VM stack
     THIS->stack_ptr--;
-    THIS->PC = *(THIS->stack_ptr);
+    THIS->PC = (const UBYTE *)*(THIS->stack_ptr);
 }
 
 // far call to another bank
 void call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked {
-    *(THIS->stack_ptr) = THIS->PC;
+    *(THIS->stack_ptr) = (UWORD)THIS->PC;
     THIS->stack_ptr++;
-    *(THIS->stack_ptr) = (void *)(THIS->bank);
+    *(THIS->stack_ptr) = THIS->bank;
     THIS->stack_ptr++;
     THIS->PC = pc;
     THIS->bank = bank;
@@ -79,30 +79,30 @@ void ret_far(SCRIPT_CTX * THIS) __banked {
     THIS->stack_ptr--;
     THIS->bank = (UBYTE)(*(THIS->stack_ptr));
     THIS->stack_ptr--;
-    THIS->PC = *(THIS->stack_ptr);
+    THIS->PC = (const UBYTE *)*(THIS->stack_ptr);
 }
 
 // you can also invent calling convention and pass parameters to scripts on VM stack,
 // make a library of scripts and so on
 // pushes word onto VM stack
 void push(SCRIPT_CTX * THIS, UWORD value) __banked {
-    *(THIS->stack_ptr) = (void *)value;
+    *(THIS->stack_ptr) = value;
     THIS->stack_ptr++;
 }
 // cleans up to n words from stack and returns last one 
- const UBYTE * pop(SCRIPT_CTX * THIS, UBYTE n) __banked {
+ UWORD pop(SCRIPT_CTX * THIS, UBYTE n) __banked {
     THIS->stack_ptr -= n;
     return *(THIS->stack_ptr);
 }
 
 // do..while loop, callee cleanups stack
 void loop_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked {
-    const UBYTE ** counter = THIS->stack_ptr - 1;
+    UWORD * counter = THIS->stack_ptr - 1;
     if (*counter) THIS->PC += ofs, (*counter)--; else pop(THIS, 1);
 }
 // loop absolute, callee cleanups stack
 void loop(SCRIPT_CTX * THIS, UINT8 * pc) __banked {
-    const UBYTE ** counter = THIS->stack_ptr - 1;
+    UWORD * counter = THIS->stack_ptr - 1;
     if (*counter) THIS->PC = pc, (*counter)--; else pop(THIS, 1);
 }
 
@@ -117,7 +117,7 @@ void jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked {
 
 // push systime on VM stack 
 void systime(SCRIPT_CTX * THIS) __banked {
-    *(THIS->stack_ptr) = (void *)sys_time;
+    *(THIS->stack_ptr) = sys_time;
     THIS->stack_ptr++;
 } 
 
@@ -131,7 +131,7 @@ UBYTE wait_frames(void * THIS, UBYTE start, UBYTE nparams, UWORD * stack_frame) 
 // calls C handler until it returns true; callee cleanups stack
 void invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked {
     FAR_PTR newptr = to_far_ptr(fn, bank);
-    void * stack_frame = (void *)(THIS->stack_ptr - nparams);
+    UWORD * stack_frame = THIS->stack_ptr - nparams;
 
     // update function pointer
     if (THIS->update_fn != newptr) {
@@ -160,7 +160,6 @@ void ifcond(SCRIPT_CTX * THIS, UBYTE condition, UBYTE * pc) __banked {
     INT16 * stack_frame = (void *)(THIS->stack_ptr - 2);
     INT16 A = *stack_frame++;
     INT16 B = *stack_frame;
-printf("%d ? %d\n", A, B);    
     UBYTE res = 0;
     switch (condition) {
         case 0: res = (A == B); break;
@@ -177,7 +176,12 @@ void debug(SCRIPT_CTX * THIS, char * str) __banked {
     THIS; // suppress warnings
     puts(str);
 }
-
+// pushes value from VM stack onto VM stack
+// if idx >= 0 then absolute index, if < 0 then relative to VM stack pointer
+void pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked {
+    if (idx < 0) *(THIS->stack_ptr) = *(THIS->stack_ptr + idx); else *(THIS->stack_ptr) = THIS->stack[idx];
+    THIS->stack_ptr++;
+}
 
 // return zero if script end
 // bank with VM code must be active

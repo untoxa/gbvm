@@ -92,3 +92,8 @@ OP_VM_DEBUG        = 0x10
 .macro VM_DEBUG ARG0
         .db OP_VM_DEBUG, #>ARG0, #<ARG0
 .endm
+
+OP_VM_PUSHVALUE    = 0x11
+.macro VM_PUSHVALUE ARG0
+        .db OP_VM_PUSHVALUE, #<ARG0
+.endm
