@@ -254,10 +254,10 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                 THIS->stack_ptr++;
                 THIS->PC += 2;
                 break;
-            case -1: 
-                *(THIS->stack_ptr) = (UWORD)*(THIS->PC);
+            case -1:
+                op = *(THIS->PC++); 
+                *(THIS->stack_ptr) = op;
                 THIS->stack_ptr++;
-                THIS->PC++;
                 break;
             default:
                 SWITCH_ROM_MBC1(_save);
