@@ -84,8 +84,8 @@ LESS               = 1
 GREATER            = 2
 LE_EQ              = 3
 GR_EQ              = 4
-.macro VM_IF CONDITION, LABEL
-        .db OP_VM_IF, #>LABEL, #<LABEL, #<CONDITION
+.macro VM_IF CONDITION, IDXA, IDXB, LABEL, N
+        .db OP_VM_IF, #<N, #>LABEL, #<LABEL, #<IDXB, #<IDXA, #<CONDITION
 .endm
 
 OP_VM_DEBUG        = 0x10
@@ -96,4 +96,9 @@ OP_VM_DEBUG        = 0x10
 OP_VM_PUSHVALUE    = 0x11
 .macro VM_PUSHVALUE ARG0
         .db OP_VM_PUSHVALUE, #<ARG0
+.endm
+
+OP_VM_RESERVE    = 0x11
+.macro VM_RESERVE ARG0
+        .db OP_VM_RESERVE, #<ARG0
 .endm

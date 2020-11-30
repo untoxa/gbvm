@@ -24,9 +24,10 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&systime,      0}, // 0x0C
     {&invoke,       4}, // 0x0D
     {&beginthread,  3}, // 0x0E
-    {&ifcond,       3}, // 0x0F
+    {&ifcond,       6}, // 0x0F
     {&debug,        2}, // 0x10
     {&pushvalue,    1}, // 0x11
+    {&reserve,      1}, // 0x12
 };
 
 
@@ -156,10 +157,12 @@ void beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked {
     ExecuteScript(bank, pc);
 }
 // if condition; compares two arguments on VM stack
-void ifcond(SCRIPT_CTX * THIS, UBYTE condition, UBYTE * pc) __banked {
-    INT16 * stack_frame = (void *)(THIS->stack_ptr - 2);
-    INT16 A = *stack_frame++;
-    INT16 B = *stack_frame;
+// idxA, idxB point to arguments to compare
+// negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
+void ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE * pc, UBYTE n) __banked {
+    INT16 A, B;
+    if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = THIS->stack[idxA];
+    if (idxB < 0) B = *(THIS->stack_ptr + idxB); else B = THIS->stack[idxB];
     UBYTE res = 0;
     switch (condition) {
         case 0: res = (A == B); break;
@@ -169,7 +172,7 @@ void ifcond(SCRIPT_CTX * THIS, UBYTE condition, UBYTE * pc) __banked {
         case 4: res = (A >= B); break;
     }
     if (res) THIS->PC = pc;
-    THIS->stack_ptr -= 2;
+    THIS->stack_ptr -= n;
 }
 // prints debug string
 void debug(SCRIPT_CTX * THIS, char * str) __banked {
@@ -177,10 +180,16 @@ void debug(SCRIPT_CTX * THIS, char * str) __banked {
     puts(str);
 }
 // pushes value from VM stack onto VM stack
-// if idx >= 0 then absolute index, if < 0 then relative to VM stack pointer
+// if idx >= 0 then idx is absolute, else idx is relative to VM stack pointer
 void pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked {
     if (idx < 0) *(THIS->stack_ptr) = *(THIS->stack_ptr + idx); else *(THIS->stack_ptr) = THIS->stack[idx];
     THIS->stack_ptr++;
+}
+// manipulates VM stack pointer
+// allows to reserve (or free if negative) ofs words on stack. if you do that at the beginning of script
+// then it allows to use beginning of THIS->stack[] array as script global variables
+void reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked {
+    THIS->stack_ptr += ofs;
 }
 
 // return zero if script end

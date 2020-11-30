@@ -47,9 +47,10 @@ void jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
 void systime(SCRIPT_CTX * THIS) __banked;
 void invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
 void beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
-void ifcond(SCRIPT_CTX * THIS, UBYTE condition, UBYTE * pc) __banked;
+void ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE * pc, UBYTE n) __banked;
 void debug(SCRIPT_CTX * THIS, char * str) __banked;
 void pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked;
+void reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 
 // return zero if script end
 // bank with VM code must be active

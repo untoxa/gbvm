@@ -8,22 +8,23 @@ ___bank_BYTECODE = 3
 .globl ___bank_BYTECODE
 
 _BYTECODE::
+        VM_RESERVE      2               ; reserve 2 words for globals        
         VM_PUSH         2               ; push do..while loop count
 1$:    
         VM_CALL_REL     2$
-        VM_LOOP_REL     1$              ; test loop relative 
+        VM_LOOP_REL     1$              ; test loop 
 
         VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1
 
         VM_PUSH         3
-        VM_PUSH         8
+        VM_PUSH         3 
 
         VM_PUSHVALUE    -2              ; test pushvalue, value == 3 must be pushed
 5$:    
         VM_CALL_REL     2$
         VM_LOOP_REL     5$
 
-        VM_IF EQUAL     3$
+        VM_IF EQUAL     -1, -2, 3$, 2   ; compare (SP-1) with (SP-2); jump to 3$ if EQUAL; cleanup 2 arguments from stack
         VM_DEBUG        s_not_equal
         VM_JUMP_REL     4$
 3$:     
