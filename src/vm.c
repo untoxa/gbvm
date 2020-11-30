@@ -209,13 +209,14 @@ void vm_set_const(SCRIPT_CTX * THIS, INT8 idx, UWORD value) __banked {
     *A = value;
 }
 // rpn calculator; must be __nonbanked because we access VM bytecode
+// dummy parameters are needed to make nonbanked function to be compatible with banked call
 void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
-    dummy0; dummy1;
+    dummy0; dummy1; // suppress warnings
     UBYTE _save = _current_bank;
     INT16 * A, * B;
     SWITCH_ROM_MBC1(THIS->bank);
     while (1) {
-        UBYTE op = *(THIS->PC++); 
+        INT8 op = *(THIS->PC++); 
         switch (op) {
             case '+':
                 A = THIS->stack_ptr - 2; B = A + 1;
@@ -242,12 +243,18 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                 *A = *A % *B;
                 THIS->stack_ptr--;
                 break;
-            case 0xfe: 
+            case -3:
+                op = *(THIS->PC++);
+                if (op < 0) A = THIS->stack_ptr + op; else A = &(THIS->stack[op]);
+                *(THIS->stack_ptr) = *A;
+                THIS->stack_ptr++;
+                break;
+            case -2: 
                 *(THIS->stack_ptr) = *((UWORD *)(THIS->PC));
                 THIS->stack_ptr++;
                 THIS->PC += 2;
                 break;
-            case 0xff: 
+            case -1: 
                 *(THIS->stack_ptr) = (UWORD)*(THIS->PC);
                 THIS->stack_ptr++;
                 THIS->PC++;

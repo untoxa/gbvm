@@ -118,6 +118,7 @@ OP_VM_RPN        = 0x15
 .RPN_STOP        = 0
 .TYP_B           = -1
 .TYP_W           = -2
+.TYP_REF         = -3
 .macro VM_RPN
         .db OP_VM_RPN
 .endm

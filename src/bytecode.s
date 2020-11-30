@@ -9,12 +9,12 @@ ___bank_BYTECODE = 3
 
 _BYTECODE::
         VM_RESERVE      2               ; reserve 2 words for globals
+        VM_SET_CONST    0, 2            ; set global[0] to 2
         
         VM_RPN
-        .db .TYP_B, 5, .TYP_B, 3, "-", .RPN_STOP   ; push(5 - 3)
+        .db .TYP_B, 5, .TYP_B, 3, "-", .TYP_REF, 0, "+", .TYP_B, 2, "-", .RPN_STOP   ; push(5 - 3 + global[0] - 2) == 2
 
-        VM_SET          0, -1           ; set global[0] to (SP-1)
-        VM_SET_CONST    1, 2            ; set global[1] to 2
+        VM_SET          1, -1           ; set global[1] to (SP-1)
         VM_IF .EQ       0, 1, 1$, 0     ; compare global[0] with global[1]; jump to 1$ if EQUAL; don't cleanup stack
         VM_DEBUG        s_error
         VM_STOP
