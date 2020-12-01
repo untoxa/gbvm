@@ -1,6 +1,7 @@
 #pragma bank 2
 
 #include <string.h>
+#include <stdlib.h>
 #include "vm.h"
 
 // define addressmod for HOME
@@ -25,7 +26,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_invoke,       4}, // 0x0D
     {&vm_beginthread,  3}, // 0x0E
     {&vm_ifcond,       6}, // 0x0F
-    {&vm_debug,        2}, // 0x10
+    {&vm_debug,        3}, // 0x10
     {&vm_pushvalue,    1}, // 0x11
     {&vm_reserve,      1}, // 0x12
     {&vm_set,          2}, // 0x13
@@ -178,11 +179,6 @@ void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE *
     if (res) THIS->PC = pc;
     THIS->stack_ptr -= n;
 }
-// prints debug string
-void vm_debug(SCRIPT_CTX * THIS, char * str) __banked {
-    THIS; // suppress warnings
-    puts(str);
-}
 // pushes value from VM stack onto VM stack
 // if idx >= 0 then idx is absolute, else idx is relative to VM stack pointer
 void vm_pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked {
@@ -264,6 +260,45 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                 return;
         }
     }
+}
+unsigned char display_text[80];
+// prints debug string
+void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, char * str, UBYTE nargs) __nonbanked {
+    dummy0; dummy1; // suppress warnings
+    UBYTE _save = _current_bank;
+    SWITCH_ROM_MBC1(THIS->bank);
+    
+    unsigned char * d = display_text, * s = str;
+    const UBYTE * args = THIS->PC;
+    INT8 idx;
+
+    while (*s) {
+        if (*s == '%') {
+            s++;
+            switch (*s) {
+                case 'd':
+                    idx = *args;
+                    if (idx < 0) {
+                        d += strlen(itoa((INT16)*(THIS->stack_ptr + idx), d));
+                    } else {
+                        d += strlen(itoa((INT16)(THIS->stack[idx]), d));
+                    }
+                    s++;
+                    args++;
+                    continue;
+                case '%':
+                    break;
+                default:
+                    s--;
+            }
+        }
+        *d++ = *s++;
+    }
+    *d = 0;
+
+    puts(display_text);
+    SWITCH_ROM_MBC1(_save);
+    THIS->PC += nargs;
 }
 
 
