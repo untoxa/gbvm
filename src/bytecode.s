@@ -30,7 +30,7 @@ _BYTECODE::
         VM_PUSH         0               ; placeholder for thread handle
         VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1, -1
 
-        VM_DEBUG        1
+        VM_DEBUG        1               ; print handle of created thread
         .dw -1
         .asciz "hThread: %d"
 
@@ -51,9 +51,9 @@ _BYTECODE::
 4$:
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
 
-;        VM_TERMINATE    -1              ; force termination of thread
+;        VM_TERMINATE    -1              ; kill thread (rest of threadfunc won't execute) 
 
-        VM_JOIN         -1              ; wait thread to be terminated (thread handle becomes 1)
+        VM_JOIN         -1              ; wait for thread exit (or kill): high byte of thread handle becomes non-zero
         VM_POP          1               ; deallocate thread handle
 
         VM_DEBUG        0
