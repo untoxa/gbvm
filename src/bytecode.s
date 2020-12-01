@@ -12,7 +12,7 @@ _BYTECODE::
         VM_SET_CONST    0, 2            ; set global[0] to 2
         
         VM_RPN
-        .db .TYP_B, 5, .TYP_B, 3, "-", .TYP_REF, 0, "+", .TYP_B, -2, "+", .RPN_STOP   ; push(5 - 3 + global[0] + -2) == 2
+        .db .TYP_B, 5, .TYP_B, 3, "-", .TYP_REF, 0, "+", .TYP_B, -2, "+", .RPN_STOP   ; push(5 - 3 + global[0] + -2)  result is 2
 
         VM_SET          1, -1           ; set global[1] to *(SP-1)
 
@@ -45,15 +45,17 @@ _BYTECODE::
         VM_DEBUG        0
         .asciz "Equal"
 4$:
-        VM_CALL_FAR     ___bank_libfuncs, _LIBFUNC01
+        VM_CALL_FAR     ___bank_libfuncs, _LIB01
         VM_DEBUG        0
         .asciz "Main terminated"
         VM_STOP
 2$:
-        VM_DEBUG        0
-        .asciz "Hello, world!"
-        VM_PUSH         60              ; 90 frames == 1,5s
-        VM_INVOKE       b_wait_frames, _wait_frames, 1
+        VM_PUSH         ___bank_BYTECODE
+        VM_DEBUG        1
+        .db -1
+        .asciz "Hello! bank: %d"
+        VM_SET_CONST    -1, 60          ; reuse value on the top of stack, set to 60
+        VM_INVOKE       b_wait_frames, _wait_frames, 1  ; call wait_frames(), dispose 1 parameter on stack after
         VM_RET
 
 ___bank_THREAD1 = 3
@@ -61,8 +63,8 @@ _THREAD1::
         VM_DEBUG        0
         .asciz "Thread started"
         VM_PUSH         90              ; 60 frames == 1s
-        VM_INVOKE       b_wait_frames, _wait_frames, 1
-        VM_CALL_FAR     ___bank_libfuncs, _LIBFUNC01
+        VM_INVOKE       b_wait_frames, _wait_frames, 1  ; call wait_frames(), dispose 1 parameter on stack after
+        VM_CALL_FAR     ___bank_libfuncs, _LIB01
         VM_DEBUG        0
         .asciz "Thread terminated"
         VM_STOP
@@ -72,7 +74,10 @@ _THREAD1::
 ___bank_libfuncs = 1
 .globl ___bank_libfuncs
 
-_LIBFUNC01::
-        VM_DEBUG        0
-        .asciz "LIBFUNC01()"
+_LIB01::
+        VM_PUSH         ___bank_libfuncs
+        VM_DEBUG        1
+        .db -1
+        .asciz "LIB01() bank: %d"
+        VM_POP          1               ; dispose bank number on stack before far return
         VM_RET_FAR
