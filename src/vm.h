@@ -25,6 +25,10 @@ typedef struct SCRIPT_CTX {
   // VM stack pointer
   UWORD * stack_ptr;
   UWORD * base_addr;
+  // thread control
+  UBYTE ID;
+  UWORD * hthread;
+  UBYTE terminated;
 } SCRIPT_CTX;
 
 #define INSTRUCTION_SIZE 1
@@ -53,7 +57,7 @@ void vm_jump_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void vm_jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
 void vm_systime(SCRIPT_CTX * THIS) __banked;
 void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
-void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
+void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx) __banked;
 void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) __banked;
 void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonbanked;
 void vm_pushvalue(SCRIPT_CTX * THIS, INT16 idx) __banked;
@@ -61,6 +65,8 @@ void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void vm_set(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked;
 void vm_set_const(SCRIPT_CTX * THIS, INT16 idx, UWORD value) __banked;
 void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked;
+void vm_join(SCRIPT_CTX * THIS, INT16 idx) __banked;
+void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) __banked;
 
 // return zero if script end
 // bank with VM code must be active
@@ -69,7 +75,9 @@ UBYTE STEP_VM(SCRIPT_CTX * CTX) __naked __nonbanked __preserves_regs(b, c);
 // initialize script runner contexts
 void ScriptRunnerInit() __banked;
 // execute a script in the new allocated context
-UBYTE ExecuteScript(UBYTE bank, UBYTE * pc) __banked;
+UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle) __banked;
+// terminate script by ID
+void TerminateScript(UBYTE ID) __banked; 
 // process all contexts
 UBYTE ScriptRunnerUpdate() __nonbanked;
 

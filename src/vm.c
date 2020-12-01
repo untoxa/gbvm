@@ -24,7 +24,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_ret_far,      0}, // 0x0B
     {&vm_systime,      0}, // 0x0C
     {&vm_invoke,       4}, // 0x0D
-    {&vm_beginthread,  3}, // 0x0E
+    {&vm_beginthread,  5}, // 0x0E
     {&vm_ifcond,       8}, // 0x0F
     {&vm_debug,        1}, // 0x10
     {&vm_pushvalue,    2}, // 0x11
@@ -32,6 +32,8 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_set,          4}, // 0x13
     {&vm_set_const,    4}, // 0x14
     {&vm_rpn,          0}, // 0x15
+    {&vm_join,         2}, // 0x16
+    {&vm_terminate,    2}, // 0x17
 };
 
 
@@ -156,10 +158,24 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banke
 } 
 
 // runs script in a new thread
-void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked {
-    THIS; // suppress warnings
-    ExecuteScript(bank, pc);
+void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx) __banked {
+    UWORD * A;
+    if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
+    ExecuteScript(bank, pc, A);
 }
+// 
+void vm_join(SCRIPT_CTX * THIS, INT16 idx) __banked {
+    UWORD * A;
+    if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
+    if (!(*A >> 8)) THIS->PC -= (INSTRUCTION_SIZE + sizeof(idx));
+}
+// 
+void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) __banked {
+    UWORD * A;
+    if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
+    TerminateScript((UBYTE)(*A));
+}
+
 // if condition; compares two arguments on VM stack
 // idxA, idxB point to arguments to compare
 // negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
@@ -436,30 +452,49 @@ void ScriptRunnerInit() __banked {
     free_ctxs = CTXS, first_ctx = 0;
     memset(script_memory, 0, sizeof(script_memory));
     memset(CTXS, 0, sizeof(CTXS));
-    SCRIPT_CTX * tmp = CTXS;
-    tmp->base_addr = base_addr; 
-    for (UBYTE i = 0; i < (SCRIPT_MAX_CONTEXTS - 1); i++) {
-        tmp->next = tmp + 1;
-        tmp++;
-        base_addr += CONTEXT_STACK_SIZE;
+
+    SCRIPT_CTX * nxt = 0;
+    SCRIPT_CTX * tmp = CTXS + (SCRIPT_MAX_CONTEXTS - 1);
+    for (UBYTE i = 0; i < SCRIPT_MAX_CONTEXTS; i++) {
+        tmp->next = nxt;
         tmp->base_addr = base_addr;
+        tmp->ID = i + 1;
+        base_addr += CONTEXT_STACK_SIZE;
+        nxt = tmp--;
     }
 }
 
 // execute a script in the new allocated context
 // actually, it initializes free context with bytecode and moves it into the active context chain
-UBYTE ExecuteScript(UBYTE bank, UBYTE * pc) __banked {
+UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle) __banked {
     if (free_ctxs) {
         SCRIPT_CTX * tmp = free_ctxs;
         // remove context from free list
         free_ctxs = free_ctxs->next;
         // initialize context
         tmp->PC = pc, tmp->bank = bank, tmp->stack_ptr = tmp->base_addr;
+        // set thread handle by reference
+        tmp->hthread = handle;
+        if (handle) *handle = tmp->ID;
+        // clear termination flag
+        tmp->terminated = 0;
         // add context to active list
         tmp->next = first_ctx, first_ctx = tmp;
-        return 1;
+        return tmp->ID;
     }
     return 0;
+}
+
+// terminate script by ID
+void TerminateScript(UBYTE ID) __banked {
+    static SCRIPT_CTX * ctx;
+    ctx = first_ctx; 
+    while (ctx) {
+        if (ctx->ID == ID) {
+            ctx->terminated = 1;
+            return;
+        } else ctx = ctx->next;
+    }    
 }
 
 // process all contexts
@@ -468,7 +503,9 @@ UBYTE ScriptRunnerUpdate() __nonbanked {
     static SCRIPT_CTX * old_ctx, * ctx;
     old_ctx = 0, ctx = first_ctx; 
     while (ctx) {
-        if (!STEP_VM(ctx)) {
+        if ((ctx->terminated) || (!STEP_VM(ctx))) {
+            // update handle if present
+            if (ctx->hthread) *(ctx->hthread) |= 0x8000;
             // script is finished, remove from linked list
             if (old_ctx) old_ctx->next = ctx->next; else first_ctx = ctx->next;
             // add terminated context to free contexts list

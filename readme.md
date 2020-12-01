@@ -1,5 +1,5 @@
 # Simple VM for script-driven game boy games
-Features
+Features:
 - human readable assembler-like scripts
 - rom banks support
 - multi-threading

@@ -12,7 +12,7 @@ void main() {
     font_set(font_load(font_spect));
     
     ScriptRunnerInit();
-    ExecuteScript((UBYTE)&__bank_BYTECODE, BYTECODE);
+    ExecuteScript((UBYTE)&__bank_BYTECODE, BYTECODE, 0);
     printf(">> VM START\n");
     while (ScriptRunnerUpdate());
     printf("<< VM DONE\n");

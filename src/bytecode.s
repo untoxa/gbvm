@@ -12,7 +12,7 @@ _BYTECODE::
         
         VM_RPN
         .db .TYP_B, 5, .TYP_B, 3, "-", .TYP_REF, 0,0, "+", .TYP_B, -2, "+", .RPN_STOP   ; push(5 - 3 + global[0] + -2)  result is 2
-                                        ;        ^^^ this is a word; index for global[] array
+                                        ;        ^^^ this is INT16 offset, index for global[] array
         VM_SET          1, -1           ; set global[1] to *(SP-1)
 
         VM_DEBUG        3               ; printf("0:%d 1:%d -1:%d\n", global[0], global[1], *(SP-1));
@@ -27,7 +27,12 @@ _BYTECODE::
         VM_CALL_REL     2$
         VM_LOOP_REL     1$              ; test loop 
 
-        VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1
+        VM_PUSH         0               ; placeholder for thread handle
+        VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1, -1
+
+        VM_DEBUG        1
+        .dw -1
+        .asciz "hThread: %d"
 
         VM_PUSH         3               ; value A to compare
         VM_PUSH         3               ; value B to compare
@@ -45,6 +50,12 @@ _BYTECODE::
         .asciz "Equal"
 4$:
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
+
+;        VM_TERMINATE    -1              ; force termination of thread
+
+        VM_JOIN         -1              ; wait thread to be terminated (thread handle becomes 1)
+        VM_POP          1               ; deallocate thread handle
+
         VM_DEBUG        0
         .asciz "Main terminated"
         VM_STOP

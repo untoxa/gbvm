@@ -74,8 +74,8 @@ OP_VM_INVOKE       = 0x0D
 .endm
 
 OP_VM_BEGINTHREAD  = 0x0E
-.macro VM_BEGINTHREAD ARG0, ARG1
-        .db OP_VM_BEGINTHREAD, #>ARG1, #<ARG1, #<ARG0
+.macro VM_BEGINTHREAD ARG0, ARG1, ARG2
+        .db OP_VM_BEGINTHREAD, #>ARG2, #<ARG2, #>ARG1, #<ARG1, #<ARG0
 .endm
 
 OP_VM_IF           = 0x0F
@@ -121,4 +121,14 @@ OP_VM_RPN        = 0x15
 .TYP_REF         = -3
 .macro VM_RPN
         .db OP_VM_RPN
+.endm
+
+OP_VM_JOIN       = 0x16
+.macro VM_JOIN IDX
+        .db OP_VM_JOIN, #>IDX, #<IDX
+.endm
+
+OP_VM_TERMINATE  = 0x17
+.macro VM_TERMINATE IDX
+        .db OP_VM_TERMINATE, #>IDX, #<IDX
 .endm
