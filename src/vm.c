@@ -25,12 +25,12 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_systime,      0}, // 0x0C
     {&vm_invoke,       4}, // 0x0D
     {&vm_beginthread,  3}, // 0x0E
-    {&vm_ifcond,       6}, // 0x0F
+    {&vm_ifcond,       8}, // 0x0F
     {&vm_debug,        1}, // 0x10
-    {&vm_pushvalue,    1}, // 0x11
+    {&vm_pushvalue,    2}, // 0x11
     {&vm_reserve,      1}, // 0x12
-    {&vm_set,          2}, // 0x13
-    {&vm_set_const,    3}, // 0x14
+    {&vm_set,          4}, // 0x13
+    {&vm_set_const,    4}, // 0x14
     {&vm_rpn,          0}, // 0x15
 };
 
@@ -163,10 +163,10 @@ void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked {
 // if condition; compares two arguments on VM stack
 // idxA, idxB point to arguments to compare
 // negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
-void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE * pc, UBYTE n) __banked {
+void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) __banked {
     INT16 A, B;
-    if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = THIS->stack[idxA];
-    if (idxB < 0) B = *(THIS->stack_ptr + idxB); else B = THIS->stack[idxB];
+    if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = script_memory[idxA];
+    if (idxB < 0) B = *(THIS->stack_ptr + idxB); else B = script_memory[idxB];
     UBYTE res = 0;
     switch (condition) {
         case 0: res = (A == B); break;
@@ -181,27 +181,25 @@ void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE *
 }
 // pushes value from VM stack onto VM stack
 // if idx >= 0 then idx is absolute, else idx is relative to VM stack pointer
-void vm_pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked {
-    if (idx < 0) *(THIS->stack_ptr) = *(THIS->stack_ptr + idx); else *(THIS->stack_ptr) = THIS->stack[idx];
+void vm_pushvalue(SCRIPT_CTX * THIS, INT16 idx) __banked {
+    if (idx < 0) *(THIS->stack_ptr) = *(THIS->stack_ptr + idx); else *(THIS->stack_ptr) = script_memory[idx];
     THIS->stack_ptr++;
 }
 // manipulates VM stack pointer
-// allows to reserve (or free if negative) ofs words on stack. if you do that at the beginning of script
-// then it allows to use beginning of THIS->stack[] array as script global variables
 void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked {
     THIS->stack_ptr += ofs;
 }
 // sets value on stack indexed by idxA to value on stack indexed by idxB 
-void vm_set(SCRIPT_CTX * THIS, INT8 idxA, INT8 idxB) __banked {
+void vm_set(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked {
     INT16 * A, * B;
-    if (idxA < 0) A = THIS->stack_ptr + idxA; else A = &(THIS->stack[idxA]);
-    if (idxB < 0) B = THIS->stack_ptr + idxB; else B = &(THIS->stack[idxB]);
+    if (idxA < 0) A = THIS->stack_ptr + idxA; else A = &(script_memory[idxA]);
+    if (idxB < 0) B = THIS->stack_ptr + idxB; else B = &(script_memory[idxB]);
     *A = *B;
 }
 // sets value on stack indexed by idx to value
-void vm_set_const(SCRIPT_CTX * THIS, INT8 idx, UWORD value) __banked {
+void vm_set_const(SCRIPT_CTX * THIS, INT16 idx, UWORD value) __banked {
     UWORD * A;
-    if (idx < 0) A = THIS->stack_ptr + idx; else A = &(THIS->stack[idx]);
+    if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
     *A = value;
 }
 // rpn calculator; must be __nonbanked because we access VM bytecode
@@ -209,6 +207,7 @@ void vm_set_const(SCRIPT_CTX * THIS, INT8 idx, UWORD value) __banked {
 void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
     dummy0; dummy1; // suppress warnings
     INT16 * A, * B;
+    INT16 idx;
 
     UBYTE _save = _current_bank;        // we must preserve current bank, 
     SWITCH_ROM_MBC1(THIS->bank);        // then switch to bytecode bank
@@ -242,10 +241,11 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                 THIS->stack_ptr--;
                 break;
             case -3:
-                op = *(THIS->PC++);
-                if (op < 0) A = THIS->stack_ptr + op; else A = &(THIS->stack[op]);
+                idx = *((INT16 *)(THIS->PC)); 
+                if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
                 *(THIS->stack_ptr) = *A;
                 THIS->stack_ptr++;
+                THIS->PC += 2;
                 break;
             case -2: 
                 *(THIS->stack_ptr) = *((UWORD *)(THIS->PC));
@@ -276,22 +276,22 @@ void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonb
     
     const UBYTE * args = THIS->PC;
     unsigned char * d = display_text; 
-    const unsigned char * s = args + nargs;
-    INT8 idx;
+    const unsigned char * s = args + (nargs << 1);
+    INT16 idx;
 
     while (*s) {
         if (*s == '%') {
             s++;
             switch (*s) {
                 case 'd':
-                    idx = *args;
+                    idx = *((INT16 *)args);
                     if (idx < 0) {
                         d += strlen(itoa((INT16)*(THIS->stack_ptr + idx), d));
                     } else {
-                        d += strlen(itoa((INT16)(THIS->stack[idx]), d));
+                        d += strlen(itoa((INT16)(script_memory[idx]), d));
                     }
                     s++;
-                    args++;
+                    args += 2;
                     continue;
                 case '%':
                     break;
@@ -426,15 +426,23 @@ __endasm;
 // dummy function for __addressmod attribure, it never gets called
 void ___vm_dummy_fn(void) __nonbanked __preserves_regs(a, b, c, d, e, h, l) __naked { __asm__("ret"); }
 
+// global shared script memory
+UWORD script_memory[MAX_GLOBAL_VARS + (SCRIPT_MAX_CONTEXTS * CONTEXT_STACK_SIZE)];
+
 // initialize script runner contexts
 // resets whole VM engine
 void ScriptRunnerInit() __banked {
+    UWORD * base_addr = &script_memory[MAX_GLOBAL_VARS];
     free_ctxs = CTXS, first_ctx = 0;
+    memset(script_memory, 0, sizeof(script_memory));
     memset(CTXS, 0, sizeof(CTXS));
     SCRIPT_CTX * tmp = CTXS;
+    tmp->base_addr = base_addr; 
     for (UBYTE i = 0; i < (SCRIPT_MAX_CONTEXTS - 1); i++) {
         tmp->next = tmp + 1;
         tmp++;
+        base_addr += CONTEXT_STACK_SIZE;
+        tmp->base_addr = base_addr;
     }
 }
 
@@ -446,7 +454,7 @@ UBYTE ExecuteScript(UBYTE bank, UBYTE * pc) __banked {
         // remove context from free list
         free_ctxs = free_ctxs->next;
         // initialize context
-        tmp->PC = pc, tmp->bank = bank, tmp->stack_ptr = tmp->stack;
+        tmp->PC = pc, tmp->bank = bank, tmp->stack_ptr = tmp->base_addr;
         // add context to active list
         tmp->next = first_ctx, first_ctx = tmp;
         return 1;

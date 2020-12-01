@@ -86,7 +86,7 @@ OP_VM_IF           = 0x0F
 .GTE               = 4
 .NE                = 5
 .macro VM_IF CONDITION, IDXA, IDXB, LABEL, N
-        .db OP_VM_IF, #<N, #>LABEL, #<LABEL, #<IDXB, #<IDXA, #<CONDITION
+        .db OP_VM_IF, #<N, #>LABEL, #<LABEL, #>IDXB, #<IDXB, #>IDXA, #<IDXA, #<CONDITION
 .endm
 
 OP_VM_DEBUG        = 0x10
@@ -96,7 +96,7 @@ OP_VM_DEBUG        = 0x10
 
 OP_VM_PUSHVALUE    = 0x11
 .macro VM_PUSHVALUE ARG0
-        .db OP_VM_PUSHVALUE, #<ARG0
+        .db OP_VM_PUSHVALUE, #>ARG0, #<ARG0
 .endm
 
 OP_VM_RESERVE    = 0x12
@@ -106,12 +106,12 @@ OP_VM_RESERVE    = 0x12
 
 OP_VM_SET        = 0x13
 .macro VM_SET IDXA, IDXB
-        .db OP_VM_SET, #<IDXB, #<IDXA
+        .db OP_VM_SET, #>IDXB, #<IDXB, #>IDXA, #<IDXA
 .endm
 
 OP_VM_SET_CONST  = 0x14
 .macro VM_SET_CONST IDX, VAL
-        .db OP_VM_SET_CONST, #>VAL, #<VAL, #<IDX
+        .db OP_VM_SET_CONST, #>VAL, #<VAL, #>IDX, #<IDX
 .endm
 
 OP_VM_RPN        = 0x15

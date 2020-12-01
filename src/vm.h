@@ -22,15 +22,22 @@ typedef struct SCRIPT_CTX {
   struct SCRIPT_CTX * next;
   // update function
   FAR_PTR update_fn;
-  // VM stack 
-  UWORD * stack_ptr;        // stack pointer
-  UWORD stack[16];          // maximum stack depth is 16 words
+  // VM stack pointer
+  UWORD * stack_ptr;
+  UWORD * base_addr;
 } SCRIPT_CTX;
 
 #define INSTRUCTION_SIZE 1
 
-// maximum number of concurrent running threads
-#define SCRIPT_MAX_CONTEXTS 10
+// maximum number of concurrent running VM threads
+#define SCRIPT_MAX_CONTEXTS 8
+// stack size of each VM thread
+#define CONTEXT_STACK_SIZE 16
+// number of shared variables
+#define MAX_GLOBAL_VARS 32
+
+// shared context memory
+extern UWORD script_memory[MAX_GLOBAL_VARS + (SCRIPT_MAX_CONTEXTS * CONTEXT_STACK_SIZE)];  // maximum stack depth is 16 words
 
 // script core functions
 void vm_push(SCRIPT_CTX * THIS, UWORD value) __banked;
@@ -47,12 +54,12 @@ void vm_jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
 void vm_systime(SCRIPT_CTX * THIS) __banked;
 void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
 void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
-void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE * pc, UBYTE n) __banked;
+void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) __banked;
 void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonbanked;
-void vm_pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked;
+void vm_pushvalue(SCRIPT_CTX * THIS, INT16 idx) __banked;
 void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked;
-void vm_set(SCRIPT_CTX * THIS, INT8 idxA, INT8 idxB) __banked;
-void vm_set_const(SCRIPT_CTX * THIS, INT8 idx, UWORD value) __banked;
+void vm_set(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked;
+void vm_set_const(SCRIPT_CTX * THIS, INT16 idx, UWORD value) __banked;
 void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked;
 
 // return zero if script end

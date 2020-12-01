@@ -8,16 +8,15 @@ ___bank_BYTECODE = 3
 .globl ___bank_BYTECODE
 
 _BYTECODE::
-        VM_RESERVE      2               ; reserve 2 words for globals
         VM_SET_CONST    0, 2            ; set global[0] to 2
         
         VM_RPN
-        .db .TYP_B, 5, .TYP_B, 3, "-", .TYP_REF, 0, "+", .TYP_B, -2, "+", .RPN_STOP   ; push(5 - 3 + global[0] + -2)  result is 2
-
+        .db .TYP_B, 5, .TYP_B, 3, "-", .TYP_REF, 0,0, "+", .TYP_B, -2, "+", .RPN_STOP   ; push(5 - 3 + global[0] + -2)  result is 2
+                                        ;        ^^^ this is a word; index for global[] array
         VM_SET          1, -1           ; set global[1] to *(SP-1)
 
         VM_DEBUG        3               ; printf("0:%d 1:%d -1:%d\n", global[0], global[1], *(SP-1));
-        .db 0, 1, -1
+        .dw 0, 1, -1
         .asciz "0:%d 1:%d -1:%d"        ; debug string may be embedded into the code
 
         VM_IF .EQ       0, 1, 1$, 0     ; compare global[0] with global[1]; jump to 1$ if EQUAL; don't cleanup stack
@@ -52,7 +51,7 @@ _BYTECODE::
 2$:
         VM_PUSH         ___bank_BYTECODE
         VM_DEBUG        1
-        .db -1
+        .dw -1
         .asciz "Hello! bank: %d"
         VM_SET_CONST    -1, 60          ; reuse value on the top of stack, set to 60
         VM_INVOKE       b_wait_frames, _wait_frames, 1  ; call wait_frames(), dispose 1 parameter on stack after
@@ -77,7 +76,7 @@ ___bank_libfuncs = 1
 _LIB01::
         VM_PUSH         ___bank_libfuncs
         VM_DEBUG        1
-        .db -1
+        .dw -1
         .asciz "LIB01() bank: %d"
         VM_POP          1               ; dispose bank number on stack before far return
         VM_RET_FAR
