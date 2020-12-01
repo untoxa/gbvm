@@ -90,8 +90,8 @@ OP_VM_IF           = 0x0F
 .endm
 
 OP_VM_DEBUG        = 0x10
-.macro VM_DEBUG ARG0, ARG1
-        .db OP_VM_DEBUG, #<ARG1, #>ARG0, #<ARG0
+.macro VM_DEBUG ARG0
+        .db OP_VM_DEBUG, #<ARG0
 .endm
 
 OP_VM_PUSHVALUE    = 0x11

@@ -26,7 +26,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_invoke,       4}, // 0x0D
     {&vm_beginthread,  3}, // 0x0E
     {&vm_ifcond,       6}, // 0x0F
-    {&vm_debug,        3}, // 0x10
+    {&vm_debug,        1}, // 0x10
     {&vm_pushvalue,    1}, // 0x11
     {&vm_reserve,      1}, // 0x12
     {&vm_set,          2}, // 0x13
@@ -208,9 +208,11 @@ void vm_set_const(SCRIPT_CTX * THIS, INT8 idx, UWORD value) __banked {
 // dummy parameters are needed to make nonbanked function to be compatible with banked call
 void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
     dummy0; dummy1; // suppress warnings
-    UBYTE _save = _current_bank;
     INT16 * A, * B;
-    SWITCH_ROM_MBC1(THIS->bank);
+
+    UBYTE _save = _current_bank;        // we must preserve current bank, 
+    SWITCH_ROM_MBC1(THIS->bank);        // then switch to bytecode bank
+
     while (1) {
         INT8 op = *(THIS->PC++); 
         switch (op) {
@@ -256,20 +258,25 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                 THIS->stack_ptr++;
                 break;
             default:
-                SWITCH_ROM_MBC1(_save);
+                SWITCH_ROM_MBC1(_save);     // restore bank
                 return;
         }
     }
 }
+
+// text buffer
 unsigned char display_text[80];
-// prints debug string
-void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, char * str, UBYTE nargs) __nonbanked {
+
+// prints debug string into the text buffer then outputs to screen
+void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonbanked {
     dummy0; dummy1; // suppress warnings
+
     UBYTE _save = _current_bank;
     SWITCH_ROM_MBC1(THIS->bank);
     
-    unsigned char * d = display_text, * s = str;
     const UBYTE * args = THIS->PC;
+    unsigned char * d = display_text; 
+    const unsigned char * s = args + nargs;
     INT8 idx;
 
     while (*s) {
@@ -294,14 +301,16 @@ void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, char * str, UBYTE n
         }
         *d++ = *s++;
     }
-    *d = 0;
+    *d = 0, s++;
 
     puts(display_text);
+
     SWITCH_ROM_MBC1(_save);
-    THIS->PC += nargs;
+    THIS->PC = s;
 }
 
 
+// executes one step in the passed context
 // return zero if script end
 // bank with VM code must be active
 UBYTE STEP_VM(SCRIPT_CTX * CTX) __naked __nonbanked __preserves_regs(b, c) {
@@ -414,9 +423,11 @@ __asm
         ret
 __endasm;
 }
-
+// dummy function for __addressmod attribure, it never gets called
 void ___vm_dummy_fn(void) __nonbanked __preserves_regs(a, b, c, d, e, h, l) __naked { __asm__("ret"); }
 
+// initialize script runner contexts
+// resets whole VM engine
 void ScriptRunnerInit() __banked {
     free_ctxs = CTXS, first_ctx = 0;
     memset(CTXS, 0, sizeof(CTXS));
@@ -427,6 +438,8 @@ void ScriptRunnerInit() __banked {
     }
 }
 
+// execute a script in the new allocated context
+// actually, it initializes free context with bytecode and moves it into the active context chain
 UBYTE ExecuteScript(UBYTE bank, UBYTE * pc) __banked {
     if (free_ctxs) {
         SCRIPT_CTX * tmp = free_ctxs;
@@ -441,6 +454,8 @@ UBYTE ExecuteScript(UBYTE bank, UBYTE * pc) __banked {
     return 0;
 }
 
+// process all contexts
+// executes one command in each active context
 UBYTE ScriptRunnerUpdate() __nonbanked {
     static SCRIPT_CTX * old_ctx, * ctx;
     old_ctx = 0, ctx = first_ctx; 

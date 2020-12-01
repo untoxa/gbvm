@@ -48,7 +48,7 @@ void vm_systime(SCRIPT_CTX * THIS) __banked;
 void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
 void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
 void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT8 idxA, INT8 idxB, UBYTE * pc, UBYTE n) __banked;
-void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, char * str, UBYTE nargs) __nonbanked;
+void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonbanked;
 void vm_pushvalue(SCRIPT_CTX * THIS, INT8 idx) __banked;
 void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void vm_set(SCRIPT_CTX * THIS, INT8 idxA, INT8 idxB) __banked;
