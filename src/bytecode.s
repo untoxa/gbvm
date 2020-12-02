@@ -17,7 +17,7 @@ _BYTECODE::
 
         VM_DEBUG        3               ; printf("0:%d 1:%d -1:%d\n", global[0], global[1], *(SP-1));
         .dw 0, 1, -1
-        .asciz "0:%d 1:%d -1:%d"        ; debug string may be embedded into the code
+        .asciz "[0]=%d [1]=%d [-1]=%d"  ; debug string may be embedded into the code
 
         VM_IF .EQ       0, 1, 1$, 0     ; compare global[0] with global[1]; jump to 1$ if EQUAL; don't cleanup stack
         VM_DEBUG        0

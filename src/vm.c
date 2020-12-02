@@ -229,53 +229,44 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
     SWITCH_ROM_MBC1(THIS->bank);        // then switch to bytecode bank
 
     while (1) {
-        INT8 op = *(THIS->PC++); 
-        switch (op) {
-            case '+':
-                A = THIS->stack_ptr - 2; B = A + 1;
-                *A = *A + *B;
-                THIS->stack_ptr--;
-                break;
-            case '-':
-                A = THIS->stack_ptr - 2; B = A + 1;
-                *A = *A - *B;
-                THIS->stack_ptr--;
-                break;
-            case '*':
-                A = THIS->stack_ptr - 2; B = A + 1;
-                *A = (*A) * (*B);
-                THIS->stack_ptr--;
-                break;
-            case '/':
-                A = THIS->stack_ptr - 2; B = A + 1;
-                *A = *A / *B;
-                THIS->stack_ptr--;
-                break;
-            case '%':
-                A = THIS->stack_ptr - 2; B = A + 1;
-                *A = *A % *B;
-                THIS->stack_ptr--;
-                break;
-            case -3:
-                idx = *((INT16 *)(THIS->PC)); 
-                if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
-                *(THIS->stack_ptr) = *A;
-                THIS->stack_ptr++;
-                THIS->PC += 2;
-                break;
-            case -2: 
-                *(THIS->stack_ptr) = *((UWORD *)(THIS->PC));
-                THIS->stack_ptr++;
-                THIS->PC += 2;
-                break;
-            case -1:
-                op = *(THIS->PC++); 
-                *(THIS->stack_ptr) = op;
-                THIS->stack_ptr++;
-                break;
-            default:
-                SWITCH_ROM_MBC1(_save);     // restore bank
-                return;
+        INT8 op = *(THIS->PC++);
+        if (op < 0) {
+            switch (op) {
+                case -3:
+                    idx = *((INT16 *)(THIS->PC)); 
+                    if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
+                    *(THIS->stack_ptr) = *A;
+                    THIS->PC += 2;
+                    break;
+                case -2: 
+                    *(THIS->stack_ptr) = *((UWORD *)(THIS->PC));
+                    THIS->PC += 2;
+                    break;
+                case -1:
+                    op = *(THIS->PC++); 
+                    *(THIS->stack_ptr) = op;
+                    break;
+                default:
+                    SWITCH_ROM_MBC1(_save);     // restore bank
+                    return;
+            }
+            THIS->stack_ptr++;
+        } else {
+            A = THIS->stack_ptr - 2; B = A + 1;
+            switch (op) {
+                case '+': *A = *A  +  *B; break;
+                case '-': *A = *A  -  *B; break;
+                case '*': *A = *A  *  *B; break;
+                case '/': *A = *A  /  *B; break;
+                case '%': *A = *A  %  *B; break;
+                case '|': *A = *A  |  *B; break;
+                case '&': *A = *A  &  *B; break;
+                case '^': *A = *A  ^  *B; break;
+                default:
+                    SWITCH_ROM_MBC1(_save);     // restore bank
+                    return;
+            }
+            THIS->stack_ptr--;
         }
     }
 }
@@ -301,11 +292,8 @@ void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonb
             switch (*s) {
                 case 'd':
                     idx = *((INT16 *)args);
-                    if (idx < 0) {
-                        d += strlen(itoa((INT16)*(THIS->stack_ptr + idx), d));
-                    } else {
-                        d += strlen(itoa((INT16)(script_memory[idx]), d));
-                    }
+                    if (idx < 0) idx = *(THIS->stack_ptr + idx); else idx = script_memory[idx];
+                    d += strlen(itoa(idx, d));
                     s++;
                     args += 2;
                     continue;
