@@ -16,8 +16,8 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_call_rel,     1}, // 0x03
     {&vm_call,         2}, // 0x04
     {&vm_ret,          1}, // 0x05
-    {&vm_loop_rel,     1}, // 0x06
-    {&vm_loop,         2}, // 0x07
+    {&vm_loop_rel,     4}, // 0x06
+    {&vm_loop,         5}, // 0x07
     {&vm_jump_rel,     1}, // 0x08
     {&vm_jump,         2}, // 0x09
     {&vm_call_far,     3}, // 0x0A
@@ -100,19 +100,29 @@ void vm_push(SCRIPT_CTX * THIS, UWORD value) __banked {
 }
 // cleans up to n words from stack and returns last one 
  UWORD vm_pop(SCRIPT_CTX * THIS, UBYTE n) __banked {
-    THIS->stack_ptr -= n;
+    if (n) THIS->stack_ptr -= n;
     return *(THIS->stack_ptr);
 }
 
 // do..while loop, callee cleanups stack
-void vm_loop_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked {
-    UWORD * counter = THIS->stack_ptr - 1;
-    if (*counter) THIS->PC += ofs, (*counter)--; else vm_pop(THIS, 1);
+void vm_loop_rel(SCRIPT_CTX * THIS, INT16 idx, INT8 ofs, UBYTE n) __banked {
+    UWORD * counter;
+    if (idx < 0) counter = THIS->stack_ptr + idx; else counter = &(script_memory[idx]);
+    if (*counter) {
+        THIS->PC += ofs, (*counter)--; 
+    } else {
+        if (n) THIS->stack_ptr -= n;
+    }
 }
 // loop absolute, callee cleanups stack
-void vm_loop(SCRIPT_CTX * THIS, UINT8 * pc) __banked {
-    UWORD * counter = THIS->stack_ptr - 1;
-    if (*counter) THIS->PC = pc, (*counter)--; else vm_pop(THIS, 1);
+void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 * pc, UBYTE n) __banked {
+    UWORD * counter;
+    if (idx < 0) counter = THIS->stack_ptr + idx; else counter = &(script_memory[idx]);
+    if (*counter) {
+        THIS->PC = pc, (*counter)--; 
+    } else {
+        if (n) THIS->stack_ptr -= n;
+    }
 }
 
 // jump relative
@@ -195,7 +205,7 @@ void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE
         case 5: res = (A != B); break;
     }
     if (res) THIS->PC = pc;
-    THIS->stack_ptr -= n;
+    if (n) THIS->stack_ptr -= n;
 }
 // pushes value from VM stack onto VM stack
 // if idx >= 0 then idx is absolute, else idx is relative to VM stack pointer

@@ -56,14 +56,14 @@ OP_VM_RET          = 0x05
 
 ; loop by relative (one-byte) offset, counter is on stack, counter is removed on exit
 OP_VM_LOOP_REL     = 0x06
-.macro VM_LOOP_REL ARG0
-        .db OP_VM_LOOP_REL, #(ARG0 - . - 1)
+.macro VM_LOOP_REL IDX, LABEL, NPOP
+        .db OP_VM_LOOP_REL, #<NPOP, #(LABEL - . - 3), #>IDX, #<IDX
 .endm
 
 ; loop by near address, counter is on stack, counter is removed on exit
 OP_VM_LOOP         = 0x07
-.macro VM_LOOP ARG0
-        .db OP_VM_LOOP, #>ARG0, #<ARG0
+.macro VM_LOOP IDX, LABEL, NPOP
+        .db OP_VM_LOOP, #<NPOP, #>LABEL, #<LABEL, #>IDX, #<IDX
 .endm
 
 ; loop by relative (one-byte) offset

@@ -8,12 +8,12 @@ ___bank_BYTECODE = 3
 .globl ___bank_BYTECODE
 
 _BYTECODE::
-        VM_SET_CONST    0, 2            ; set global[0] to 2
+        VM_SET_CONST    0, 2            ; global[0] = 2
         
         VM_RPN
         .db .TYP_B, 5, .TYP_B, 3, "-", .TYP_REF, 0,0, "+", .TYP_B, -2, "+", .RPN_STOP   ; push(5 - 3 + global[0] + -2)  result is 2
                                         ;        ^^^ this is INT16 offset: index for global[] array
-        VM_SET          1, .ARG0        ; set global[1] to *(SP-1)
+        VM_SET          1, .ARG0        ; global[1] = *(SP-1)
 
         VM_DEBUG        3               ; printf("0:%d 1:%d -1:%d\n", global[0], global[1], *(SP-1));
         .dw 0, 1, .ARG0
@@ -24,8 +24,8 @@ _BYTECODE::
          .asciz "!ERROR!"
         VM_STOP
 1$:    
-        VM_CALL         2$              ; 2$ is too far for relative call
-        VM_LOOP_REL     1$              ; test loop 
+        VM_CALL         2$              ; 2$ is too far for relative call, use near call
+        VM_LOOP_REL     .ARG0, 1$, 1    ; test loop 
 
         VM_PUSH         0               ; placeholder for thread handle
         VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1, .ARG0
@@ -39,7 +39,7 @@ _BYTECODE::
 
         VM_PUSHVALUE    .ARG1           ; test pushvalue, value == 3 must be pushed
 5$:    
-        VM_LOOP_REL     5$
+        VM_LOOP_REL     .ARG0, 5$, 1    ; empty loop
 
         VM_IF .EQ       .ARG0, .ARG1, 3$, 2     ; compare *(SP-1) with *(SP-2); jump to 3$ if EQUAL; cleanup 2 arguments from stack
         VM_DEBUG        0
