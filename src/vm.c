@@ -15,13 +15,13 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_pop,          1}, // 0x02
     {&vm_call_rel,     1}, // 0x03
     {&vm_call,         2}, // 0x04
-    {&vm_ret,          0}, // 0x05
+    {&vm_ret,          1}, // 0x05
     {&vm_loop_rel,     1}, // 0x06
     {&vm_loop,         2}, // 0x07
     {&vm_jump_rel,     1}, // 0x08
     {&vm_jump,         2}, // 0x09
     {&vm_call_far,     3}, // 0x0A
-    {&vm_ret_far,      0}, // 0x0B
+    {&vm_ret_far,      1}, // 0x0B
     {&vm_systime,      0}, // 0x0C
     {&vm_invoke,       4}, // 0x0D
     {&vm_beginthread,  5}, // 0x0E
@@ -66,10 +66,11 @@ void vm_call(SCRIPT_CTX * THIS, UBYTE * pc) __banked {
     THIS->PC = pc;    
 }
 // return instruction returns to a point where call was invoked
-void vm_ret(SCRIPT_CTX * THIS) __banked {
+void vm_ret(SCRIPT_CTX * THIS, UBYTE n) __banked {
     // pop VM PC from VM stack
     THIS->stack_ptr--;
     THIS->PC = (const UBYTE *)*(THIS->stack_ptr);
+    THIS->stack_ptr -= n;
 }
 
 // far call to another bank
@@ -82,11 +83,12 @@ void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked {
     THIS->bank = bank;
 }
 // ret from far call
-void vm_ret_far(SCRIPT_CTX * THIS) __banked {
+void vm_ret_far(SCRIPT_CTX * THIS, UBYTE n) __banked {
     THIS->stack_ptr--;
     THIS->bank = (UBYTE)(*(THIS->stack_ptr));
     THIS->stack_ptr--;
     THIS->PC = (const UBYTE *)*(THIS->stack_ptr);
+    THIS->stack_ptr -= n;
 }
 
 // you can also invent calling convention and pass parameters to scripts on VM stack,
@@ -474,15 +476,16 @@ UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle) __banked {
 }
 
 // terminate script by ID
-void TerminateScript(UBYTE ID) __banked {
+UBYTE TerminateScript(UBYTE ID) __banked {
     static SCRIPT_CTX * ctx;
     ctx = first_ctx; 
     while (ctx) {
         if (ctx->ID == ID) {
             ctx->terminated = 1;
-            return;
+            return 1;
         } else ctx = ctx->next;
-    }    
+    }
+    return 0;
 }
 
 // process all contexts

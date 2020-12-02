@@ -48,9 +48,9 @@ void vm_push(SCRIPT_CTX * THIS, UWORD value) __banked;
 UWORD vm_pop(SCRIPT_CTX * THIS, UBYTE n) __banked;
 void vm_call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void vm_call(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
-void vm_ret(SCRIPT_CTX * THIS) __banked;
+void vm_ret(SCRIPT_CTX * THIS, UBYTE n) __banked;
 void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked;
-void vm_ret_far(SCRIPT_CTX * THIS) __banked;
+void vm_ret_far(SCRIPT_CTX * THIS, UBYTE n) __banked;
 void vm_loop_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void vm_loop(SCRIPT_CTX * THIS, UINT8 * pc) __banked;
 void vm_jump_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
@@ -76,8 +76,8 @@ UBYTE STEP_VM(SCRIPT_CTX * CTX) __naked __nonbanked __preserves_regs(b, c);
 void ScriptRunnerInit() __banked;
 // execute a script in the new allocated context
 UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle) __banked;
-// terminate script by ID
-void TerminateScript(UBYTE ID) __banked; 
+// terminate script by ID; returns non zero if no such thread is running
+UBYTE TerminateScript(UBYTE ID) __banked; 
 // process all contexts
 UBYTE ScriptRunnerUpdate() __nonbanked;
 
