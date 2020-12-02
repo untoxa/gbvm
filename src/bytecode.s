@@ -12,7 +12,7 @@ _BYTECODE::
         
         VM_RPN
         .db .TYP_B, 5, .TYP_B, 3, "-", .TYP_REF, 0,0, "+", .TYP_B, -2, "+", .RPN_STOP   ; push(5 - 3 + global[0] + -2)  result is 2
-                                        ;        ^^^ this is INT16 offset, index for global[] array
+                                        ;        ^^^ this is INT16 offset: index for global[] array
         VM_SET          1, .ARG0        ; set global[1] to *(SP-1)
 
         VM_DEBUG        3               ; printf("0:%d 1:%d -1:%d\n", global[0], global[1], *(SP-1));
@@ -24,7 +24,7 @@ _BYTECODE::
          .asciz "!ERROR!"
         VM_STOP
 1$:    
-        VM_CALL_REL     2$
+        VM_CALL         2$              ; 2$ is too far for relative call
         VM_LOOP_REL     1$              ; test loop 
 
         VM_PUSH         0               ; placeholder for thread handle
@@ -43,19 +43,23 @@ _BYTECODE::
 
         VM_IF .EQ       .ARG0, .ARG1, 3$, 2     ; compare *(SP-1) with *(SP-2); jump to 3$ if EQUAL; cleanup 2 arguments from stack
         VM_DEBUG        0
-        .asciz "Not equal"
+        .asciz "err: ARG0 != ARG1"
         VM_JUMP_REL     4$
 3$:     
         VM_DEBUG        0
-        .asciz "Equal"
+        .asciz "ok: ARG0 == ARG1"
 4$:
         VM_PUSH         50
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
 
 ;        VM_TERMINATE    .ARG0           ; kill thread (rest of threadfunc won't execute) 
 
+        VM_DEBUG        0
+        .asciz "wait for join()"
         VM_JOIN         .ARG0           ; wait for thread exit (or kill): high byte of thread handle becomes non-zero
         VM_POP          1               ; deallocate thread handle
+        VM_DEBUG        0
+        .asciz "thread joined"
 
         VM_DEBUG        0
         .asciz "Main terminated"
@@ -64,7 +68,7 @@ _BYTECODE::
         VM_PUSH         ___bank_BYTECODE
         VM_DEBUG        1
         .dw .ARG0
-        .asciz "Hello! bank: %d"
+        .asciz "wait(1s) bank: %d"
         VM_SET_CONST    .ARG0, 60       ; reuse value on the top of stack, set to 60
         VM_INVOKE       b_wait_frames, _wait_frames, 1  ; call wait_frames(), dispose 1 parameter on stack after
         VM_RET
@@ -73,9 +77,11 @@ ___bank_THREAD1 = 3
 _THREAD1::
         VM_DEBUG        0
         .asciz "Thread started"
+        VM_DEBUG        0
+        .asciz "wait(1.5s) thread"
         VM_PUSH         90              ; 60 frames == 1s
         VM_INVOKE       b_wait_frames, _wait_frames, 1  ; call wait_frames(), dispose 1 parameter on stack after
-        VM_PUSH         200
+        VM_PUSH         75
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
         VM_DEBUG        0
         .asciz "Thread terminated"

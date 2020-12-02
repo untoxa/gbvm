@@ -70,7 +70,7 @@ void vm_ret(SCRIPT_CTX * THIS, UBYTE n) __banked {
     // pop VM PC from VM stack
     THIS->stack_ptr--;
     THIS->PC = (const UBYTE *)*(THIS->stack_ptr);
-    THIS->stack_ptr -= n;
+    if (n) THIS->stack_ptr -= n;
 }
 
 // far call to another bank
@@ -88,7 +88,7 @@ void vm_ret_far(SCRIPT_CTX * THIS, UBYTE n) __banked {
     THIS->bank = (UBYTE)(*(THIS->stack_ptr));
     THIS->stack_ptr--;
     THIS->PC = (const UBYTE *)*(THIS->stack_ptr);
-    THIS->stack_ptr -= n;
+    if (n) THIS->stack_ptr -= n;
 }
 
 // you can also invent calling convention and pass parameters to scripts on VM stack,
