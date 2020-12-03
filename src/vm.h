@@ -29,6 +29,8 @@ typedef struct SCRIPT_CTX {
   UBYTE ID;
   UWORD * hthread;
   UBYTE terminated;
+  // waitable state
+  UBYTE waitable;
 } SCRIPT_CTX;
 
 #define INSTRUCTION_SIZE 1
@@ -78,6 +80,11 @@ void ScriptRunnerInit() __banked;
 UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle) __banked;
 // terminate script by ID; returns non zero if no such thread is running
 UBYTE TerminateScript(UBYTE ID) __banked; 
+
+#define RUNNER_DONE 0
+#define RUNNER_IDLE 1
+#define RUNNER_BUSY 2
+
 // process all contexts
 UBYTE ScriptRunnerUpdate() __nonbanked;
 

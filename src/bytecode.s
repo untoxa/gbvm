@@ -25,7 +25,7 @@ _BYTECODE::
         VM_STOP
 1$:    
         VM_CALL         2$              ; 2$ is too far for relative call, use near call
-        VM_LOOP_REL     .ARG0, 1$, 1    ; test loop 
+        VM_LOOP_REL     .ARG0, 1$, 1    ; loop to 1$; use *(SP-1) as counter; cleanup counter from stack after
 
         VM_PUSH         0               ; placeholder for thread handle
         VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1, .ARG0
@@ -39,9 +39,9 @@ _BYTECODE::
 
         VM_PUSHVALUE    .ARG1           ; test pushvalue, value == 3 must be pushed
 5$:    
-        VM_LOOP_REL     .ARG0, 5$, 1    ; empty loop
+        VM_LOOP_REL     .ARG0, 5$, 1    ; empty loop to 5$; cleanup counter from stack after
 
-        VM_IF .EQ       .ARG0, .ARG1, 3$, 2     ; compare *(SP-1) with *(SP-2); jump to 3$ if EQUAL; cleanup 2 arguments from stack
+        VM_IF .EQ       .ARG0, .ARG1, 3$, 2     ; if (*(SP-1) == *(SP-2)) goto 3$; also cleanup 2 arguments from stack
         VM_DEBUG        0
         .asciz "err: ARG0 != ARG1"
         VM_JUMP_REL     4$

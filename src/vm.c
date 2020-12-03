@@ -167,6 +167,8 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banke
     }
     // call handler again, wait condition is not met
     THIS->PC -= (INSTRUCTION_SIZE + sizeof(bank) + sizeof(fn) + sizeof(nparams));
+    // indicate waitable state
+    THIS->waitable = 1;
 } 
 
 // runs script in a new thread
@@ -179,7 +181,7 @@ void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx) __bank
 void vm_join(SCRIPT_CTX * THIS, INT16 idx) __banked {
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
-    if (!(*A >> 8)) THIS->PC -= (INSTRUCTION_SIZE + sizeof(idx));
+    if (!(*A >> 8)) THIS->PC -= (INSTRUCTION_SIZE + sizeof(idx)), THIS->waitable = 1;
 }
 // 
 void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) __banked {
@@ -502,8 +504,11 @@ UBYTE TerminateScript(UBYTE ID) __banked {
 // executes one command in each active context
 UBYTE ScriptRunnerUpdate() __nonbanked {
     static SCRIPT_CTX * old_ctx, * ctx;
-    old_ctx = 0, ctx = first_ctx; 
+    static UBYTE waitable;
+    old_ctx = 0, ctx = first_ctx;
+    waitable = 1;
     while (ctx) {
+        ctx->waitable = 0;
         if ((ctx->terminated) || (!STEP_VM(ctx))) {
             // update handle if present
             if (ctx->hthread) *(ctx->hthread) |= 0x8000;
@@ -513,8 +518,13 @@ UBYTE ScriptRunnerUpdate() __nonbanked {
             ctx->next = free_ctxs, free_ctxs = ctx;
             // next context
             if (old_ctx) ctx = old_ctx->next; else ctx = first_ctx;
-        } else old_ctx = ctx, ctx = ctx->next;
+        } else {
+            waitable &= ctx->waitable; 
+            old_ctx = ctx, ctx = ctx->next;
+        }
     }
-    // return true if not all threads are finished
-    return (first_ctx != 0); 
+    // return 0 if all threads are finished
+    if (first_ctx == 0) return 0;
+    // return 1 if all threads in waitable state else return 2
+    if (waitable) return 1; else return 2;
 }
