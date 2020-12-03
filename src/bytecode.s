@@ -11,14 +11,15 @@ _BYTECODE::
         VM_GET_SYSTIME  2               ; sys_time(&global[2])
         VM_SET_CONST    0, 2            ; global[0] = 2
         
-        VM_RPN                          ; push(5 - 3 + global[0] + -2)  result is 2
+        VM_RPN                          ; push(abs(5 - 3 + global[0] + -6))  result is 2
             .R_INT8     5
             .R_INT8     3
             .R_OPERATOR "-"
             .R_REF      0
             .R_OPERATOR "+"
-            .R_INT16    -2
+            .R_INT16    -6
             .R_OPERATOR "+"
+            .R_OPERATOR "@"
             .R_STOP
 
         VM_SET          1, .ARG0        ; global[1] = *(SP-1)

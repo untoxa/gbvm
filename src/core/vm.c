@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include "vm.h"
 
 // define addressmod for HOME
@@ -35,6 +36,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_join,         2}, // 0x16
     {&vm_terminate,    2}, // 0x17
     {&vm_idle,         0}, // 0x18
+    {vm_get_tlocal,    4}, // 0x19
 };
 
 
@@ -53,8 +55,7 @@ SCRIPT_CTX * first_ctx, * free_ctxs;
 // this is a call instruction, it pushes return address onto VM stack
 void vm_call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked {
     // push current VM PC onto VM stack
-    *(THIS->stack_ptr) = (UWORD)THIS->PC;
-    THIS->stack_ptr++;
+    *(THIS->stack_ptr++) = (UWORD)THIS->PC;
     // modify VM PC (goto PC + ofs)
     // pc is a pointer, you may point to any other script wherever you want
     // you may also pass absolute pointer instead of ofs, if you want
@@ -62,8 +63,7 @@ void vm_call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked {
 }
 // call absolute instruction
 void vm_call(SCRIPT_CTX * THIS, UBYTE * pc) __banked {
-    *(THIS->stack_ptr) = (UWORD)THIS->PC;
-    THIS->stack_ptr++;
+    *(THIS->stack_ptr++) = (UWORD)THIS->PC;
     THIS->PC = pc;    
 }
 // return instruction returns to a point where call was invoked
@@ -76,10 +76,8 @@ void vm_ret(SCRIPT_CTX * THIS, UBYTE n) __banked {
 
 // far call to another bank
 void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked {
-    *(THIS->stack_ptr) = (UWORD)THIS->PC;
-    THIS->stack_ptr++;
-    *(THIS->stack_ptr) = THIS->bank;
-    THIS->stack_ptr++;
+    *(THIS->stack_ptr++) = (UWORD)THIS->PC;
+    *(THIS->stack_ptr++) = THIS->bank;
     THIS->PC = pc;
     THIS->bank = bank;
 }
@@ -96,8 +94,7 @@ void vm_ret_far(SCRIPT_CTX * THIS, UBYTE n) __banked {
 // make a library of scripts and so on
 // pushes word onto VM stack
 void vm_push(SCRIPT_CTX * THIS, UWORD value) __banked {
-    *(THIS->stack_ptr) = value;
-    THIS->stack_ptr++;
+    *(THIS->stack_ptr++) = value;
 }
 // cleans up to n words from stack and returns last one 
  UWORD vm_pop(SCRIPT_CTX * THIS, UBYTE n) __banked {
@@ -177,7 +174,7 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banke
 void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx) __banked {
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
-    ExecuteScript(bank, pc, A);
+    ExecuteScript(bank, pc, A, 0);
 }
 // 
 void vm_join(SCRIPT_CTX * THIS, INT16 idx) __banked {
@@ -234,6 +231,13 @@ void vm_set_const(SCRIPT_CTX * THIS, INT16 idx, UWORD value) __banked {
     if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
     *A = value;
 }
+// sets value on stack indexed by idxA to value on stack indexed by idxB 
+void vm_get_tlocal(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked {
+    INT16 * A, * B;
+    if (idxA < 0) A = THIS->stack_ptr + idxA; else A = &(script_memory[idxA]);
+    if (idxB < 0) B = THIS->stack_ptr + idxB; else B = &(THIS->base_addr[idxB]);
+    *A = *B;
+}
 // rpn calculator; must be __nonbanked because we access VM bytecode
 // dummy parameters are needed to make nonbanked function to be compatible with banked call
 void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
@@ -264,7 +268,7 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                     *(THIS->stack_ptr) = op;
                     break;
                 default:
-                    SWITCH_ROM_MBC1(_save);     // restore bank
+                    SWITCH_ROM_MBC1(_save);         // restore bank
                     return;
             }
             THIS->stack_ptr++;
@@ -279,8 +283,9 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                 case '|': *A = *A  |  *B; break;
                 case '&': *A = *A  &  *B; break;
                 case '^': *A = *A  ^  *B; break;
+                case '@': *B = abs(*B); continue;   // unary operator, don't touch SP
                 default:
-                    SWITCH_ROM_MBC1(_save);     // restore bank
+                    SWITCH_ROM_MBC1(_save);         // restore bank
                     return;
             }
             THIS->stack_ptr--;
@@ -473,7 +478,7 @@ void ScriptRunnerInit() __banked {
 
 // execute a script in the new allocated context
 // actually, it initializes free context with bytecode and moves it into the active context chain
-UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle) __banked {
+UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle, INT8 nargs, ...) __banked {
     if (free_ctxs) {
         SCRIPT_CTX * tmp = free_ctxs;
         // remove context from free list
@@ -487,6 +492,13 @@ UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle) __banked {
         tmp->terminated = 0;
         // add context to active list
         tmp->next = first_ctx, first_ctx = tmp;
+        // push threadlocals
+        va_list va;
+        va_start(va, nargs);
+        for (INT8 i = 0; i < nargs; i++) {
+            *(tmp->stack_ptr++) = va_arg(va, INT16);
+        }
+        // return thread ID
         return tmp->ID;
     }
     return 0;

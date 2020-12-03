@@ -70,6 +70,7 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked;
 void vm_join(SCRIPT_CTX * THIS, INT16 idx) __banked;
 void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) __banked;
 void vm_idle(SCRIPT_CTX * THIS) __banked;
+void vm_get_tlocal(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked;
 
 // return zero if script end
 // bank with VM code must be active
@@ -78,7 +79,7 @@ UBYTE STEP_VM(SCRIPT_CTX * CTX) __naked __nonbanked __preserves_regs(b, c);
 // initialize script runner contexts
 void ScriptRunnerInit() __banked;
 // execute a script in the new allocated context
-UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle) __banked;
+UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle, INT8 nargs, ...) __banked;
 // terminate script by ID; returns non zero if no such thread is running
 UBYTE TerminateScript(UBYTE ID) __banked; 
 

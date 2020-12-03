@@ -194,3 +194,8 @@ OP_VM_IDLE      = 0x18
 .macro VM_IDLE
         .db OP_VM_IDLE
 .endm
+
+OP_VM_GET_TLOCAL= 0x19
+.macro VM_GET_TLOCAL IDXA, IDXB
+        .db OP_VM_GET_TLOCAL, #>IDXB, #<IDXB, #>IDXA, #<IDXA
+.endm
