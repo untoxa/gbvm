@@ -176,3 +176,8 @@ OP_VM_TERMINATE  = 0x17
 .macro VM_TERMINATE IDX
         .db OP_VM_TERMINATE, #>IDX, #<IDX
 .endm
+
+OP_VM_IDLE      = 0x18
+.macro VM_IDLE
+        .db OP_VM_IDLE
+.endm

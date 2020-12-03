@@ -39,7 +39,8 @@ _BYTECODE::
 
         VM_PUSHVALUE    .ARG1           ; test pushvalue, value == 3 must be pushed
 5$:    
-        VM_LOOP_REL     .ARG0, 5$, 1    ; empty loop to 5$; cleanup counter from stack after
+        VM_IDLE                         ; execution may be delayed here
+        VM_LOOP_REL     .ARG0, 5$, 1    ; loop to 5$; cleanup counter from stack after
 
         VM_IF .EQ       .ARG0, .ARG1, 3$, 2     ; if (*(SP-1) == *(SP-2)) goto 3$; also cleanup 2 arguments from stack
         VM_DEBUG        0

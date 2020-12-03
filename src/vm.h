@@ -69,6 +69,7 @@ void vm_set_const(SCRIPT_CTX * THIS, INT16 idx, UWORD value) __banked;
 void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked;
 void vm_join(SCRIPT_CTX * THIS, INT16 idx) __banked;
 void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) __banked;
+void vm_idle(SCRIPT_CTX * THIS) __banked;
 
 // return zero if script end
 // bank with VM code must be active

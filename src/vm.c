@@ -34,6 +34,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_rpn,          0}, // 0x15
     {&vm_join,         2}, // 0x16
     {&vm_terminate,    2}, // 0x17
+    {&vm_idle,         0}, // 0x18
 };
 
 
@@ -327,6 +328,10 @@ void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonb
     THIS->PC = s;
 }
 
+// puts context into a waitable state
+void vm_idle(SCRIPT_CTX * THIS) __banked {
+    THIS->waitable = 1;
+}
 
 // executes one step in the passed context
 // return zero if script end
