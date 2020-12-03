@@ -8,12 +8,19 @@ ___bank_BYTECODE = 3
 .globl ___bank_BYTECODE
 
 _BYTECODE::
-        VM_GET_SYSTIME  2               ; global[2] = sys_time
+        VM_GET_SYSTIME  2               ; sys_time(&global[2])
         VM_SET_CONST    0, 2            ; global[0] = 2
         
-        VM_RPN
-        .db .TYP_B, 5, .TYP_B, 3, "-", .TYP_REF, 0,0, "+", .TYP_B, -2, "+", .RPN_STOP   ; push(5 - 3 + global[0] + -2)  result is 2
-                                        ;        ^^^ this is INT16 offset: index for global[] array
+        VM_RPN                          ; push(5 - 3 + global[0] + -2)  result is 2
+            .R_INT8     5
+            .R_INT8     3
+            .R_OPERATOR "-"
+            .R_REF      0
+            .R_OPERATOR "+"
+            .R_INT16    -2
+            .R_OPERATOR "+"
+            .R_STOP
+
         VM_SET          1, .ARG0        ; global[1] = *(SP-1)
 
         VM_DEBUG        3               ; printf("0:%d 1:%d -1:%d\n", global[0], global[1], *(SP-1));
@@ -63,21 +70,20 @@ _BYTECODE::
         VM_DEBUG        0
         .asciz "thread joined"
 
-        VM_PUSH         0               ; allocate tmp (alias: .ARG0)
-        VM_GET_SYSTIME  .ARG0           ; tmp = sys_time
+        VM_PUSH         0               ; allocate tmp on stack (alias: .ARG0)
+        VM_GET_SYSTIME  .ARG0           ; sys_time(&tmp)
         
-        VM_RPN                          ; tmp -= global[2]
-        .db .TYP_REF 
-        .dw .ARG0 
-        .db .TYP_REF 
-        .dw 3 
-        .db "-", .RPN_STOP
+        VM_RPN                          ; push(tmp - global[2])
+            .R_REF      .ARG0
+            .R_REF      3
+            .R_OPERATOR "-"
+            .R_STOP
 
         VM_DEBUG        1               ; printf("Main terminated\nexec time: %d", tmp)
         .dw -1
         .asciz "Main terminated\nexec time: %d"
 
-        VM_POP          1               ; deallocate tmp
+        VM_POP          2               ; deallocate 2 values on stack: result of VM_RPN and tmp
         VM_STOP                         ; stop main
 2$:
         VM_PUSH         ___bank_BYTECODE

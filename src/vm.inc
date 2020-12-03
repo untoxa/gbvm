@@ -157,12 +157,25 @@ OP_VM_SET_CONST  = 0x14
 
 ; rpn calculator, returns result on VM stack
 OP_VM_RPN        = 0x15
-.RPN_STOP        = 0
-.TYP_B           = -1
-.TYP_W           = -2
-.TYP_REF         = -3
 .macro VM_RPN
         .db OP_VM_RPN
+.endm
+.macro .R_INT8 ARG0
+        .db -1, #<ARG0
+.endm
+.macro .R_INT16 ARG0
+        .db -2
+        .dw #ARG0
+.endm
+.macro .R_REF ARG0
+        .db -3
+        .dw #ARG0
+.endm
+.macro .R_OPERATOR ARG0
+        .db ARG0
+.endm
+.macro .R_STOP
+        .db 0
 .endm
 
 ; joins a thread
