@@ -12,7 +12,7 @@ void process_VM() {
         switch (ScriptRunnerUpdate()) {
             case RUNNER_DONE: return;
             case RUNNER_IDLE: wait_vbl_done(); break;
-            case RUNNER_BUSY: break;
+//            case RUNNER_BUSY: ;
         }
     }
 }

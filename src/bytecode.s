@@ -116,7 +116,7 @@ ___bank_libfuncs = 1
 _LIB01::
         VM_PUSH         ___bank_libfuncs
         VM_DEBUG        2
-        .dw .ARG3, .ARG0                ; stack contains (reverse order): local variable (-1), ret bank(-2), ret address(-3), ARG0(-4) 
+        .dw .ARG3, .ARG0                ; stack contains (reverse order): local variable (-1), ret bank(-2), ret address(-3), PARAM0(-4) 
         .asciz "LIB01(%d) bank: %d"
         VM_POP          1               ; dispose bank number on stack before far return
         VM_RET_FAR_N    1               ; return from far call and dispose 1 argument on stack

@@ -4,7 +4,7 @@ CART_SIZE = 4
 
 ROM_BUILD_DIR = build
 OBJDIR = obj
-CFLAGS = -Iinclude
+CFLAGS = -Iinclude -Wa-Iinclude
 
 LFLAGS_NBANKS += -Wl-yo$(CART_SIZE) -Wl-ya4 -Wl-j
 
@@ -15,7 +15,10 @@ TARGET = $(ROM_BUILD_DIR)/rom.gb
 ASRC = $(foreach dir,src,$(notdir $(wildcard $(dir)/*.s))) 
 CSRC = $(foreach dir,src,$(notdir $(wildcard $(dir)/*.c))) 
 
-OBJS = $(CSRC:%.c=$(OBJDIR)/%.o) $(ASRC:%.s=$(OBJDIR)/%.o)
+ACORE = $(foreach dir,src/core,$(notdir $(wildcard $(dir)/*.s))) 
+CCORE = $(foreach dir,src/core,$(notdir $(wildcard $(dir)/*.c))) 
+
+OBJS = $(CSRC:%.c=$(OBJDIR)/%.o) $(ASRC:%.s=$(OBJDIR)/%.o) $(ACORE:%.s=$(OBJDIR)/%.o) $(CCORE:%.c=$(OBJDIR)/%.o)
 
 all:	$(TARGET) symbols
 
@@ -41,6 +44,12 @@ profile:
 	@echo "PROFILE mode ON"
 
 .SECONDARY: $(OBJS) 
+
+$(OBJDIR)/%.o:	src/core/%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/%.o:	src/core/%.s
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/%.o:	src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
