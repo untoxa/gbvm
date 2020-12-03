@@ -8,6 +8,7 @@ ___bank_BYTECODE = 3
 .globl ___bank_BYTECODE
 
 _BYTECODE::
+        VM_GET_SYSTIME  2               ; global[2] = sys_time
         VM_SET_CONST    0, 2            ; global[0] = 2
         
         VM_RPN
@@ -62,9 +63,22 @@ _BYTECODE::
         VM_DEBUG        0
         .asciz "thread joined"
 
-        VM_DEBUG        0
-        .asciz "Main terminated"
-        VM_STOP
+        VM_PUSH         0               ; allocate tmp (alias: .ARG0)
+        VM_GET_SYSTIME  .ARG0           ; tmp = sys_time
+        
+        VM_RPN                          ; tmp -= global[2]
+        .db .TYP_REF 
+        .dw .ARG0 
+        .db .TYP_REF 
+        .dw 3 
+        .db "-", .RPN_STOP
+
+        VM_DEBUG        1               ; printf("Main terminated\nexec time: %d", tmp)
+        .dw -1
+        .asciz "Main terminated\nexec time: %d"
+
+        VM_POP          1               ; deallocate tmp
+        VM_STOP                         ; stop main
 2$:
         VM_PUSH         ___bank_BYTECODE
         VM_DEBUG        1
@@ -86,7 +100,7 @@ _THREAD1::
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
         VM_DEBUG        0
         .asciz "Thread terminated"
-        VM_STOP
+        VM_STOP                         ; stop thread
 
 .area _CODE_1
 

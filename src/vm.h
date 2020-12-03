@@ -57,7 +57,7 @@ void vm_loop_rel(SCRIPT_CTX * THIS, INT16 idx, INT8 ofs, UBYTE n) __banked;
 void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 * pc, UBYTE n) __banked;
 void vm_jump_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void vm_jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
-void vm_systime(SCRIPT_CTX * THIS) __banked;
+void vm_systime(SCRIPT_CTX * THIS, INT16 idx) __banked;
 void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
 void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx) __banked;
 void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) __banked;

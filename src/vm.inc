@@ -97,8 +97,8 @@ OP_VM_RET_FAR      = 0x0B
 
 ; returns game boy system time on VM stack
 OP_VM_GET_SYSTIME  = 0x0C
-.macro VM_GET_SYSTIME
-        .db OP_VM_GET_SYSTIME
+.macro VM_GET_SYSTIME IDX
+        .db OP_VM_GET_SYSTIME, #>IDX, #<IDX
 .endm
 
 ; invokes <bank>:<address> C function until it returns true

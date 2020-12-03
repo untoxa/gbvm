@@ -22,7 +22,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_jump,         2}, // 0x09
     {&vm_call_far,     3}, // 0x0A
     {&vm_ret_far,      1}, // 0x0B
-    {&vm_systime,      0}, // 0x0C
+    {&vm_systime,      2}, // 0x0C
     {&vm_invoke,       4}, // 0x0D
     {&vm_beginthread,  5}, // 0x0E
     {&vm_ifcond,       8}, // 0x0F
@@ -135,10 +135,11 @@ void vm_jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked {
     THIS->PC = pc;    
 }
 
-// push systime on VM stack 
-void vm_systime(SCRIPT_CTX * THIS) __banked {
-    *(THIS->stack_ptr) = sys_time;
-    THIS->stack_ptr++;
+// returns systime 
+void vm_systime(SCRIPT_CTX * THIS, INT16 idx) __banked {
+    UWORD * A;
+    if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
+    *A = sys_time;
 } 
 
 UBYTE wait_frames(void * THIS, UBYTE start, UBYTE nparams, UWORD * stack_frame) __banked {
@@ -237,19 +238,20 @@ void vm_set_const(SCRIPT_CTX * THIS, INT16 idx, UWORD value) __banked {
 // dummy parameters are needed to make nonbanked function to be compatible with banked call
 void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
     dummy0; dummy1; // suppress warnings
-    INT16 * A, * B;
+    INT16 * A, * B, * ARGS;
     INT16 idx;
 
     UBYTE _save = _current_bank;        // we must preserve current bank, 
     SWITCH_ROM_MBC1(THIS->bank);        // then switch to bytecode bank
 
+    ARGS = THIS->stack_ptr;
     while (1) {
         INT8 op = *(THIS->PC++);
         if (op < 0) {
             switch (op) {
                 case -3:
                     idx = *((INT16 *)(THIS->PC)); 
-                    if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
+                    if (idx < 0) A = ARGS + idx; else A = &(script_memory[idx]);
                     *(THIS->stack_ptr) = *A;
                     THIS->PC += 2;
                     break;
@@ -342,12 +344,10 @@ __asm
         lda hl, 2(sp)
         ld a, (hl+)
         ld h, (hl)
-        
-        add #2
         ld l, a
-        adc h
-        sub l
-        ld h, a
+        
+        inc hl
+        inc hl
 
         ld a, (hl-)
         ld e, a
