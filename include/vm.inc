@@ -109,8 +109,8 @@ OP_VM_INVOKE       = 0x0D
 
 ; spawns a thread in a separate context
 OP_VM_BEGINTHREAD  = 0x0E
-.macro VM_BEGINTHREAD ARG0, ARG1, ARG2
-        .db OP_VM_BEGINTHREAD, #>ARG2, #<ARG2, #>ARG1, #<ARG1, #<ARG0
+.macro VM_BEGINTHREAD BANK, THREADPROC, HTHREAD, NARGS
+        .db OP_VM_BEGINTHREAD, #<NARGS, #>HTHREAD, #<HTHREAD, #>THREADPROC, #<THREADPROC, #<BANK
 .endm
 
 ; condition

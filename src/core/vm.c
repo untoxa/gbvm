@@ -25,7 +25,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_ret_far,      1}, // 0x0B
     {&vm_systime,      2}, // 0x0C
     {&vm_invoke,       4}, // 0x0D
-    {&vm_beginthread,  5}, // 0x0E
+    {&vm_beginthread,  6}, // 0x0E
     {&vm_ifcond,       8}, // 0x0F
     {&vm_debug,        1}, // 0x10
     {&vm_pushvalue,    2}, // 0x11
@@ -171,10 +171,24 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banke
 } 
 
 // runs script in a new thread
-void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx) __banked {
+void vm_beginthread(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx, UBYTE nargs) __nonbanked {
+    dummy0; dummy1;
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
-    ExecuteScript(bank, pc, A, 0);
+    SCRIPT_CTX * ctx = ExecuteScript(bank, pc, A, 0);
+    // initialize thread locals if any
+    if (!(nargs)) return;
+    if (ctx) {
+        UBYTE _save = _current_bank;        // we must preserve current bank, 
+        SWITCH_ROM_MBC1(THIS->bank);        // then switch to bytecode bank
+        for (UBYTE i = 0; i < nargs; i++) {
+            UWORD * A;
+            if (idx < 0) A = THIS->stack_ptr + idx; else A = &(script_memory[idx]);
+            *(ctx->stack_ptr++) = *A;
+            THIS->PC += 2;
+        }
+        SWITCH_ROM_MBC1(_save);
+    }
 }
 // 
 void vm_join(SCRIPT_CTX * THIS, INT16 idx) __banked {
@@ -478,7 +492,7 @@ void ScriptRunnerInit() __banked {
 
 // execute a script in the new allocated context
 // actually, it initializes free context with bytecode and moves it into the active context chain
-UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle, INT8 nargs, ...) __banked {
+SCRIPT_CTX * ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle, INT8 nargs, ...) __banked {
     if (free_ctxs) {
         SCRIPT_CTX * tmp = free_ctxs;
         // remove context from free list
@@ -493,13 +507,15 @@ UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle, INT8 nargs, ...) __b
         // add context to active list
         tmp->next = first_ctx, first_ctx = tmp;
         // push threadlocals
-        va_list va;
-        va_start(va, nargs);
-        for (INT8 i = 0; i < nargs; i++) {
-            *(tmp->stack_ptr++) = va_arg(va, INT16);
+        if (nargs) {
+            va_list va;
+            va_start(va, nargs);
+            for (INT8 i = 0; i < nargs; i++) {
+                *(tmp->stack_ptr++) = va_arg(va, INT16);
+            }
         }
         // return thread ID
-        return tmp->ID;
+        return tmp;
     }
     return 0;
 }

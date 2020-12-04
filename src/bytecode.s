@@ -37,7 +37,8 @@ _BYTECODE::
         VM_LOOP_REL     .ARG0, 1$, 1    ; loop to 1$; use *(SP-1) as counter; cleanup counter from stack after
 
         VM_PUSH         0               ; placeholder for thread handle
-        VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1, .ARG0
+        VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1, .ARG0, 1     ; start a thread, pass copy of .ARG0 as a parameter into thread locals
+        .dw .ARG0
 
         VM_DEBUG        1               ; print handle of created thread
         .dw .ARG0
@@ -97,8 +98,12 @@ _BYTECODE::
 
 ___bank_THREAD1 = 3
 _THREAD1::
-        VM_DEBUG        0
-        .asciz "Thread started"
+        VM_PUSH         0               ; reserve place on VM stack for the value
+        VM_GET_TLOCAL   .ARG0, 0        ; we have a thread local that is initialized by caller, get value of that local 
+        VM_DEBUG        1               ; print that thread local variable
+        .dw .ARG0
+        .asciz "Trd started: %d"
+        VM_POP          1               ; deallocate value
         VM_DEBUG        0
         .asciz "wait(1.5s) thread"
         VM_PUSH         90              ; 60 frames == 1s
@@ -106,7 +111,7 @@ _THREAD1::
         VM_PUSH         75
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
         VM_DEBUG        0
-        .asciz "Thread terminated"
+        .asciz "Trd terminated"
         VM_STOP                         ; stop thread
 
 .area _CODE_1

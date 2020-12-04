@@ -59,7 +59,7 @@ void vm_jump_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void vm_jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
 void vm_systime(SCRIPT_CTX * THIS, INT16 idx) __banked;
 void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
-void vm_beginthread(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx) __banked;
+void vm_beginthread(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx, UBYTE nargs) __nonbanked;
 void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) __banked;
 void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonbanked;
 void vm_pushvalue(SCRIPT_CTX * THIS, INT16 idx) __banked;
@@ -79,7 +79,7 @@ UBYTE STEP_VM(SCRIPT_CTX * CTX) __naked __nonbanked __preserves_regs(b, c);
 // initialize script runner contexts
 void ScriptRunnerInit() __banked;
 // execute a script in the new allocated context
-UBYTE ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle, INT8 nargs, ...) __banked;
+SCRIPT_CTX * ExecuteScript(UBYTE bank, UBYTE * pc, UWORD * handle, INT8 nargs, ...) __banked;
 // terminate script by ID; returns non zero if no such thread is running
 UBYTE TerminateScript(UBYTE ID) __banked; 
 
