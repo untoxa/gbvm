@@ -68,7 +68,7 @@ _BYTECODE::
         VM_DEBUG        0
         .asciz "wait for join()"
         VM_JOIN         .ARG0           ; wait for thread exit (or kill): high byte of thread handle becomes non-zero
-        VM_POP          1               ; deallocate thread handle
+        VM_POP          1               ; dispose thread handle
         VM_DEBUG        0
         .asciz "thread joined"
 
@@ -85,7 +85,7 @@ _BYTECODE::
         .dw -1
         .asciz "Main terminated\nexec time: %d"
 
-        VM_POP          2               ; deallocate 2 values on stack: result of VM_RPN and tmp
+        VM_POP          2               ; dispose 2 values on stack: result of VM_RPN and tmp
         VM_STOP                         ; stop main
 2$:
         VM_PUSH         ___bank_BYTECODE
@@ -120,15 +120,27 @@ _THREAD1::
         .asciz "case ID == 4"
         VM_JUMP_REL     4$
 3$:
+        VM_RPN                          ; complex condition test (note: full boolean evaluation)
+            .R_INT8     1
+            .R_OPERATOR "b"
+            .R_INT8     0
+            .R_OPERATOR "b"
+            .R_OPERATOR "&"
+            .R_INT16    3
+            .R_OPERATOR "b"
+            .R_OPERATOR "|"
+            .R_STOP
+        VM_IF_CONST .NE .ARG0, 1, 4$, 1         ; if !((bool)1 && (bool)0 || (bool)3) goto 4$; (dispose RPN result)
+
         VM_DEBUG        0
         .asciz "case ID == 7"
 4$:
-        VM_POP          1               ; deallocate value
+        VM_POP          1               ; dispose value
 
         VM_DEBUG        0
         .asciz "wait(1.5s) thread"
         VM_PUSH         90              ; 60 frames == 1s
-        VM_INVOKE       b_wait_frames, _wait_frames, 1  ; call wait_frames(), dispose 1 parameter on stack after
+        VM_INVOKE       b_wait_frames, _wait_frames, 1  ; call wait_frames(); dispose 1 parameter on stack after
         VM_PUSH         75
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
         VM_DEBUG        0

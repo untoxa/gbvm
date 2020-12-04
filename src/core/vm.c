@@ -318,7 +318,8 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                 case '|': *A = *A  |  *B; break;
                 case '&': *A = *A  &  *B; break;
                 case '^': *A = *A  ^  *B; break;
-                case '@': *B = abs(*B); continue;   // unary operator, don't touch SP
+                case '@': *B = abs(*B); continue;
+                case 'b': *B = (*B) ? 1 : 0; continue;
                 default:
                     SWITCH_ROM_MBC1(_save);         // restore bank
                     return;
