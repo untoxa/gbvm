@@ -122,13 +122,10 @@ _THREAD1::
 3$:
         VM_RPN                          ; complex condition test (note: full boolean evaluation)
             .R_INT8     1
-            .R_OPERATOR "b"
             .R_INT8     0
-            .R_OPERATOR "b"
-            .R_OPERATOR "&"
+            .R_OPERATOR "a"
             .R_INT16    3
-            .R_OPERATOR "b"
-            .R_OPERATOR "|"
+            .R_OPERATOR "o"
             .R_STOP
         VM_IF_CONST .NE .ARG0, 1, 4$, 1         ; if !((bool)1 && (bool)0 || (bool)3) goto 4$; (dispose RPN result)
 

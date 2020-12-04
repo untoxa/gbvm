@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdbool.h>
+
 #include "vm.h"
 
 // define addressmod for HOME
@@ -288,16 +290,19 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
         INT8 op = *(THIS->PC++);
         if (op < 0) {
             switch (op) {
+                // reference
                 case -3:
                     idx = *((INT16 *)(THIS->PC)); 
                     if (idx < 0) A = ARGS + idx; else A = &(script_memory[idx]);
                     *(THIS->stack_ptr) = *A;
                     THIS->PC += 2;
                     break;
+                // int16
                 case -2: 
                     *(THIS->stack_ptr) = *((UWORD *)(THIS->PC));
                     THIS->PC += 2;
                     break;
+                // int8
                 case -1:
                     op = *(THIS->PC++); 
                     *(THIS->stack_ptr) = op;
@@ -310,16 +315,27 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
         } else {
             A = THIS->stack_ptr - 2; B = A + 1;
             switch (op) {
+                // arithmetics
                 case '+': *A = *A  +  *B; break;
                 case '-': *A = *A  -  *B; break;
                 case '*': *A = *A  *  *B; break;
                 case '/': *A = *A  /  *B; break;
                 case '%': *A = *A  %  *B; break;
+                // logical
+                case 'E': *A = ((bool)(*A)  ==  (bool)(*B)); break;
+                case 'L': *A = ((bool)(*A)  <   (bool)(*B)); break;
+                case 'l': *A = ((bool)(*A)  <=  (bool)(*B)); break;
+                case 'G': *A = ((bool)(*A)  >   (bool)(*B)); break;
+                case 'g': *A = ((bool)(*A)  >=  (bool)(*B)); break;
+                case 'a': *A = ((bool)(*A)  &&  (bool)(*B)); break;
+                case 'o': *A = ((bool)(*A)  ||  (bool)(*B)); break;
+                // bit
                 case '|': *A = *A  |  *B; break;
                 case '&': *A = *A  &  *B; break;
                 case '^': *A = *A  ^  *B; break;
+                // unary
                 case '@': *B = abs(*B); continue;
-                case 'b': *B = (*B) ? 1 : 0; continue;
+                // terminator
                 default:
                     SWITCH_ROM_MBC1(_save);         // restore bank
                     return;
