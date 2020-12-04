@@ -10,3 +10,6 @@ Notes:
 
 Instead of 100 words:
 ![scheme](/scheme.png)
+
+Game structures overlaying:
+![scheme](/scheme2.png)
