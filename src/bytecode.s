@@ -32,7 +32,7 @@ _BYTECODE::
         VM_DEBUG        0
          .asciz "!ERROR!"
         VM_STOP
-1$:    
+1$:
         VM_CALL         2$              ; 2$ is too far for relative call, use near call
         VM_LOOP_REL     .ARG0, 1$, 1    ; loop to 1$; use *(SP-1) as counter; cleanup counter from stack after
 
@@ -48,7 +48,7 @@ _BYTECODE::
         VM_PUSH         3               ; value B to compare
 
         VM_PUSHVALUE    .ARG1           ; test pushvalue, value == 3 must be pushed
-5$:    
+5$:
         VM_IDLE                         ; execution may be delayed here
         VM_LOOP_REL     .ARG0, 5$, 1    ; loop to 5$; cleanup counter from stack after
 
@@ -56,7 +56,7 @@ _BYTECODE::
         VM_DEBUG        0
         .asciz "err: ARG0 != ARG1"
         VM_JUMP_REL     4$
-3$:     
+3$:
         VM_DEBUG        0
         .asciz "ok: ARG0 == ARG1"
 4$:

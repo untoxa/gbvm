@@ -204,7 +204,19 @@ OP_VM_GET_TLOCAL= 0x19
 .endm
 
 ; compares variable or value on stack with a constant
-OP_VM_IF_CONST     = 0x1A
+OP_VM_IF_CONST  = 0x1A
 .macro VM_IF_CONST CONDITION, IDXA, B, LABEL, N
         .db OP_VM_IF_CONST, #<N, #>LABEL, #<LABEL, #>B, #<B, #>IDXA, #<IDXA, #<CONDITION
+.endm
+
+; gets unsigned int8 from VM ram. non-negative index of second argument points to unsigned int8
+OP_VM_GET_UINT8 = 0x1B
+.macro VM_GET_UINT8 IDXA, IDXB
+        .db OP_VM_GET_UINT8, #>IDXB, #<IDXB, #>IDXA, #<IDXA
+.endm
+
+; gets int8 from VM ram. non-negative index of second argument points to unt8
+OP_VM_GET_INT8  = 0x1C
+.macro VM_GET_INT8 IDXA, IDXB
+        .db OP_VM_GET_INT8, #>IDXB, #<IDXB, #>IDXA, #<IDXA
 .endm

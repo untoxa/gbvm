@@ -376,6 +376,19 @@ void vm_idle(SCRIPT_CTX * THIS) __banked {
     THIS->waitable = 1;
 }
 
+// gets unsigned int8 from VM ram. non-negative index of second argument points to unsigned int8
+void vm_get_uint8(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked {
+    INT16 * A;
+    if (idxA < 0) A = THIS->stack_ptr + idxA; else A = &(script_memory[idxA]);
+    *A = *(((UINT8 *)script_memory) + idxB);
+}
+// gets int8 from VM ram. non-negative index of second argument points to unt8
+void vm_get_int8(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked {
+    INT16 * A;
+    if (idxA < 0) A = THIS->stack_ptr + idxA; else A = &(script_memory[idxA]);
+    *A = *(((INT8 *)script_memory) + idxB);
+}
+
 // executes one step in the passed context
 // return zero if script end
 // bank with VM code must be active
