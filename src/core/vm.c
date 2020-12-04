@@ -329,6 +329,7 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                 case 'g': *A = ((bool)(*A)  >=  (bool)(*B)); break;
                 case 'a': *A = ((bool)(*A)  &&  (bool)(*B)); break;
                 case 'o': *A = ((bool)(*A)  ||  (bool)(*B)); break;
+                case 'N': *A = ((bool)(*A)  !=  (bool)(*B)); break;
                 // bit
                 case '|': *A = *A  |  *B; break;
                 case '&': *A = *A  &  *B; break;

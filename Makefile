@@ -66,7 +66,7 @@ clean:
 	rm -rf obj/*
 	rm -rf $(ROM_BUILD_DIR)
 
-rom: $(ROM_BUILD_DIR)/game.gb
+rom: $(TARGET)
 
 symbols:
 	python ./utils/noi2sym.py $(patsubst %.gb,%.noi,$(TARGET)) >$(patsubst %.gb,%.sym,$(TARGET))
