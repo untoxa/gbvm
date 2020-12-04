@@ -102,7 +102,7 @@ _THREAD1::
         VM_GET_TLOCAL   .ARG0, 0        ; we have a thread local that is initialized by caller, get value of that local 
         VM_DEBUG        1               ; print that thread local variable
         .dw .ARG0
-        .asciz "Trd started: %d"
+        .asciz "Trd started, ID:%d"
         VM_POP          1               ; deallocate value
         VM_DEBUG        0
         .asciz "wait(1.5s) thread"

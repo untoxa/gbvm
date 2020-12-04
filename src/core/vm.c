@@ -155,11 +155,17 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banke
     if (THIS->update_fn != newptr) {
         THIS->update_fn = newptr;
         // call here with init == true
-        FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, 1, nparams, stack_frame);
+        if (FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, 1, nparams, stack_frame)) {
+            // pop param words from VM stack if needed 
+            if (nparams) THIS->stack_ptr -= nparams;
+            // cleanup update function pointer
+            THIS->update_fn = 0;
+            return;
+        }
     }
     if (FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, 0, nparams, stack_frame)) {
-        // pop param words from VM stack (callee clears VM stack rule) 
-        THIS->stack_ptr -= nparams;
+        // pop param words from VM stack if needed 
+        if (nparams) THIS->stack_ptr -= nparams;
         // cleanup update function pointer
         THIS->update_fn = 0;
         return;
