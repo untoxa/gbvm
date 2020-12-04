@@ -190,12 +190,21 @@ OP_VM_TERMINATE  = 0x17
         .db OP_VM_TERMINATE, #>IDX, #<IDX
 .endm
 
+; signals runner that context in a waitable state
 OP_VM_IDLE      = 0x18
 .macro VM_IDLE
         .db OP_VM_IDLE
 .endm
 
+; gets thread local variable. non-negative index of second argument points to
+; a thread local variable (parameters, passed into thread)
 OP_VM_GET_TLOCAL= 0x19
 .macro VM_GET_TLOCAL IDXA, IDXB
         .db OP_VM_GET_TLOCAL, #>IDXB, #<IDXB, #>IDXA, #<IDXA
+.endm
+
+; compares variable or value on stack with a constant
+OP_VM_IF_CONST     = 0x1A
+.macro VM_IF_CONST CONDITION, IDXA, B, LABEL, N
+        .db OP_VM_IF_CONST, #<N, #>LABEL, #<LABEL, #>B, #<B, #>IDXA, #<IDXA, #<CONDITION
 .endm

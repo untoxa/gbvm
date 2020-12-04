@@ -103,7 +103,28 @@ _THREAD1::
         VM_DEBUG        1               ; print that thread local variable
         .dw .ARG0
         .asciz "Trd started, ID:%d"
+                                                ; switch(.ARG0)
+        VM_IF_CONST .EQ .ARG0, 2, 1$, 0         ;     case 2: goto $1         
+        VM_IF_CONST .EQ .ARG0, 4, 2$, 0         ;     case 4: goto $2
+        VM_IF_CONST .EQ .ARG0, 7, 3$, 0         ;     case 7: goto $3
+                                                ;     default: 
+        VM_DEBUG        0
+        .asciz "ID not in [2,4,7]"
+        VM_JUMP_REL     4$
+1$:     
+        VM_DEBUG        0
+        .asciz "case ID == 2"
+        VM_JUMP_REL     4$
+2$:
+        VM_DEBUG        0
+        .asciz "case ID == 4"
+        VM_JUMP_REL     4$
+3$:
+        VM_DEBUG        0
+        .asciz "case ID == 7"
+4$:
         VM_POP          1               ; deallocate value
+
         VM_DEBUG        0
         .asciz "wait(1.5s) thread"
         VM_PUSH         90              ; 60 frames == 1s

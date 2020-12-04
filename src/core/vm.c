@@ -26,7 +26,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_systime,      2}, // 0x0C
     {&vm_invoke,       4}, // 0x0D
     {&vm_beginthread,  6}, // 0x0E
-    {&vm_ifcond,       8}, // 0x0F
+    {&vm_if,           8}, // 0x0F
     {&vm_debug,        1}, // 0x10
     {&vm_pushvalue,    2}, // 0x11
     {&vm_reserve,      1}, // 0x12
@@ -37,6 +37,7 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_terminate,    2}, // 0x17
     {&vm_idle,         0}, // 0x18
     {vm_get_tlocal,    4}, // 0x19
+    {&vm_if_const,     8}, // 0x1A
 };
 
 
@@ -156,17 +157,13 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banke
         THIS->update_fn = newptr;
         // call here with init == true
         if (FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, 1, nparams, stack_frame)) {
-            // pop param words from VM stack if needed 
-            if (nparams) THIS->stack_ptr -= nparams;
-            // cleanup update function pointer
+            THIS->stack_ptr = stack_frame;
             THIS->update_fn = 0;
             return;
         }
     }
     if (FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, 0, nparams, stack_frame)) {
-        // pop param words from VM stack if needed 
-        if (nparams) THIS->stack_ptr -= nparams;
-        // cleanup update function pointer
+        THIS->stack_ptr = stack_frame;
         THIS->update_fn = 0;
         return;
     }
@@ -212,10 +209,28 @@ void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) __banked {
 // if condition; compares two arguments on VM stack
 // idxA, idxB point to arguments to compare
 // negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
-void vm_ifcond(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) __banked {
+void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) __banked {
     INT16 A, B;
     if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = script_memory[idxA];
     if (idxB < 0) B = *(THIS->stack_ptr + idxB); else B = script_memory[idxB];
+    UBYTE res = 0;
+    switch (condition) {
+        case 0: res = (A == B); break;
+        case 1: res = (A <  B); break;
+        case 2: res = (A <= B); break;
+        case 3: res = (A >  B); break;
+        case 4: res = (A >= B); break;
+        case 5: res = (A != B); break;
+    }
+    if (res) THIS->PC = pc;
+    if (n) THIS->stack_ptr -= n;
+}
+// if condition; compares argument on VM stack with an immediate value
+// idxA point to arguments to compare, B is a value
+// negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
+void vm_if_const(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 B, UBYTE * pc, UBYTE n) __banked {
+    INT16 A;
+    if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = script_memory[idxA];
     UBYTE res = 0;
     switch (condition) {
         case 0: res = (A == B); break;
