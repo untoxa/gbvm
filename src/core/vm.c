@@ -322,14 +322,14 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
                 case '/': *A = *A  /  *B; break;
                 case '%': *A = *A  %  *B; break;
                 // logical
-                case 'E': *A = ((bool)(*A)  ==  (bool)(*B)); break;
-                case 'L': *A = ((bool)(*A)  <   (bool)(*B)); break;
-                case 'l': *A = ((bool)(*A)  <=  (bool)(*B)); break;
-                case 'G': *A = ((bool)(*A)  >   (bool)(*B)); break;
-                case 'g': *A = ((bool)(*A)  >=  (bool)(*B)); break;
+                case 'E': *A = (*A  ==  *B); break;
+                case 'L': *A = (*A  <   *B); break;
+                case 'l': *A = (*A  <=  *B); break;
+                case 'G': *A = (*A  >   *B); break;
+                case 'g': *A = (*A  >=  *B); break;
+                case 'N': *A = (*A  !=  *B); break;
                 case 'a': *A = ((bool)(*A)  &&  (bool)(*B)); break;
                 case 'o': *A = ((bool)(*A)  ||  (bool)(*B)); break;
-                case 'N': *A = ((bool)(*A)  !=  (bool)(*B)); break;
                 // bit
                 case '|': *A = *A  |  *B; break;
                 case '&': *A = *A  &  *B; break;
