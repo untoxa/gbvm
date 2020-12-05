@@ -1,7 +1,15 @@
 .include "vm.inc"
         
 .globl b_wait_frames, _wait_frames
-.globl _some_const                      ; for testing direct memory access
+
+; for testing direct memory access
+.globl _ACTORS
+
+; these definitions should be put into some common include where game types are defined 
+actor_t.x       = 0
+actor_t.y       = 2
+actor_t.ID      = 4
+sizeof_actor_t  = 6
 
 .area _CODE_3
 
@@ -10,8 +18,8 @@ ___bank_BYTECODE = 3
 
 _BYTECODE::
         VM_GET_SYSTIME  2               ; sys_time(&global[2])
-        VM_GET_INT16    0, _some_const
-        
+        VM_GET_INT16    0, ^/(_ACTORS + (sizeof_actor_t * 1) + actor_t.ID)/     ; ACTORS[1].ID
+
         VM_RPN                          ; push(abs(5 - 3 + global[0] + -6))  result is 2
             .R_INT8     5
             .R_INT8     3

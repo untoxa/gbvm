@@ -7,7 +7,19 @@
 extern const UBYTE BYTECODE[];                  // defined in bytecode.s
 extern void __bank_BYTECODE;
 
-const INT16 some_const = 2;
+typedef struct actor_t {
+    INT16 x, y;
+    INT16 ID;
+} actor_t;
+
+const actor_t ACTORS[2] = {
+    { 
+        .ID = 1
+    }, 
+    {
+        .ID = 2
+    }
+};
 
 void process_VM() {
     while (1) {
