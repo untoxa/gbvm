@@ -209,14 +209,20 @@ OP_VM_IF_CONST  = 0x1A
         .db OP_VM_IF_CONST, #<N, #>LABEL, #<LABEL, #>B, #<B, #>IDXA, #<IDXA, #<CONDITION
 .endm
 
-; gets unsigned int8 from VM ram. non-negative index of second argument points to unsigned int8
+; gets unsigned int8 from VM RAM. second argument is a VM RAM address of unsigned int8
 OP_VM_GET_UINT8 = 0x1B
-.macro VM_GET_UINT8 IDXA, IDXB
-        .db OP_VM_GET_UINT8, #>IDXB, #<IDXB, #>IDXA, #<IDXA
+.macro VM_GET_UINT8 IDXA, ADDR
+        .db OP_VM_GET_UINT8, #>ADDR, #<ADDR, #>IDXA, #<IDXA
 .endm
 
-; gets int8 from VM ram. non-negative index of second argument points to unt8
+; gets int8 from VM RAM. second argument is a VM RAM address of int8
 OP_VM_GET_INT8  = 0x1C
-.macro VM_GET_INT8 IDXA, IDXB
-        .db OP_VM_GET_INT8, #>IDXB, #<IDXB, #>IDXA, #<IDXA
+.macro VM_GET_INT8 IDXA, ADDR
+        .db OP_VM_GET_INT8, #>ADDR, #<ADDR, #>IDXA, #<IDXA
+.endm
+
+; gets int8 from VM RAM. second argument is a VM RAM address of int8
+OP_VM_GET_INT16  = 0x1D
+.macro VM_GET_INT16 IDXA, ADDR
+        .db OP_VM_GET_INT16, #>ADDR, #<ADDR, #>IDXA, #<IDXA
 .endm

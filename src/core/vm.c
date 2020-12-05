@@ -40,6 +40,9 @@ HOME const SCRIPT_CMD script_cmds[] = {
     {&vm_idle,         0}, // 0x18
     {vm_get_tlocal,    4}, // 0x19
     {&vm_if_const,     8}, // 0x1A
+    {vm_get_uint8,     4}, // 0x1B
+    {vm_get_int8,      4}, // 0x1C
+    {vm_get_int16,     4}, // 0x1D
 };
 
 
@@ -393,19 +396,24 @@ void vm_idle(SCRIPT_CTX * THIS) __banked {
     THIS->waitable = 1;
 }
 
-// gets unsigned int8 from VM ram. non-negative index of second argument points to unsigned int8
-void vm_get_uint8(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked {
+// gets unsigned int8 from RAM by address
+void vm_get_uint8(SCRIPT_CTX * THIS, INT16 idxA, UINT8 * addr) __banked {
     INT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = &(script_memory[idxA]);
-    *A = *(((UINT8 *)script_memory) + idxB);
+    *A = *addr;
 }
-// gets int8 from VM ram. non-negative index of second argument points to unt8
-void vm_get_int8(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked {
+// gets int8 from RAM by address
+void vm_get_int8(SCRIPT_CTX * THIS, INT16 idxA, INT8 * addr) __banked {
     INT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = &(script_memory[idxA]);
-    *A = *(((INT8 *)script_memory) + idxB);
+    *A = *addr;
 }
-
+// gets int16 from RAM by address
+void vm_get_int16(SCRIPT_CTX * THIS, INT16 idxA, INT16 * addr) __banked {
+    INT16 * A;
+    if (idxA < 0) A = THIS->stack_ptr + idxA; else A = &(script_memory[idxA]);
+    *A = *addr;
+}
 // executes one step in the passed context
 // return zero if script end
 // bank with VM code must be active

@@ -7,6 +7,8 @@
 extern const UBYTE BYTECODE[];                  // defined in bytecode.s
 extern void __bank_BYTECODE;
 
+const INT16 some_const = 2;
+
 void process_VM() {
     while (1) {
         switch (ScriptRunnerUpdate()) {

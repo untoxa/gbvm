@@ -72,8 +72,9 @@ void vm_join(SCRIPT_CTX * THIS, INT16 idx) __banked;
 void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) __banked;
 void vm_idle(SCRIPT_CTX * THIS) __banked;
 void vm_get_tlocal(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked;
-void vm_get_uint8(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked;
-void vm_get_int8(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked;
+void vm_get_uint8(SCRIPT_CTX * THIS, INT16 idxA, UINT8 * addr) __banked;
+void vm_get_int8(SCRIPT_CTX * THIS, INT16 idxA, INT8 * addr) __banked;
+void vm_get_int16(SCRIPT_CTX * THIS, INT16 idxA, INT16 * addr) __banked;
 
 // return zero if script end
 // bank with VM code must be active

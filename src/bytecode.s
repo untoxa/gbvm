@@ -1,6 +1,7 @@
 .include "vm.inc"
         
 .globl b_wait_frames, _wait_frames
+.globl _some_const                      ; for testing direct memory access
 
 .area _CODE_3
 
@@ -9,7 +10,7 @@ ___bank_BYTECODE = 3
 
 _BYTECODE::
         VM_GET_SYSTIME  2               ; sys_time(&global[2])
-        VM_SET_CONST    0, 2            ; global[0] = 2
+        VM_GET_INT16    0, _some_const
         
         VM_RPN                          ; push(abs(5 - 3 + global[0] + -6))  result is 2
             .R_INT8     5
