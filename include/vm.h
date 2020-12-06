@@ -13,6 +13,7 @@ typedef struct _SCRIPT_CMD {
   UBYTE args_len;
 } SCRIPT_CMD;
 
+#define FAR_CALL_EX(addr, seg, typ, ...) (__call_banked_addr=(addr),__call_banked_bank=(seg),((typ)(&__call__banked))(__VA_ARGS__))
 typedef UBYTE (*SCRIPT_UPDATE_FN)(void * THIS, UBYTE start, UWORD * stack_frame) __banked;
 
 typedef struct SCRIPT_CTX {
@@ -21,7 +22,8 @@ typedef struct SCRIPT_CTX {
   // linked list of contexts for cooperative multitasking
   struct SCRIPT_CTX * next;
   // update function
-  FAR_PTR update_fn;
+  void * update_fn;
+  UBYTE update_fn_bank;
   // VM stack pointer
   UWORD * stack_ptr;
   UWORD * base_addr;
