@@ -13,7 +13,7 @@ typedef struct _SCRIPT_CMD {
   UBYTE args_len;
 } SCRIPT_CMD;
 
-typedef UBYTE (*SCRIPT_UPDATE_FN)(void * THIS, UBYTE start, UBYTE nparams, UWORD * stack_frame) __banked;
+typedef UBYTE (*SCRIPT_UPDATE_FN)(void * THIS, UBYTE start, UWORD * stack_frame) __banked;
 
 typedef struct SCRIPT_CTX {
   const UBYTE * PC;

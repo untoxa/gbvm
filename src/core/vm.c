@@ -145,8 +145,8 @@ void vm_systime(SCRIPT_CTX * THIS, INT16 idx) __banked {
     *A = sys_time;
 } 
 
-UBYTE wait_frames(void * THIS, UBYTE start, UBYTE nparams, UWORD * stack_frame) __banked {
-    THIS; nparams; // suppress warnings
+UBYTE wait_frames(void * THIS, UBYTE start, UWORD * stack_frame) __banked {
+    THIS; // suppress warnings
     // we allocate one local variable (just write ahead of VM stack pointer, we have no interrupts, our local variables won't get spoiled)
     if (start) stack_frame[1] = sys_time;
     // check wait condition
@@ -159,7 +159,7 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams, INT16 i
     // update function pointer
     UBYTE start = (THIS->update_fn != newptr) ? THIS->update_fn = newptr, 1 : 0;
     // call handler
-    if (FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, start, nparams, stack_frame)) {
+    if (FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, start, stack_frame)) {
         if (nparams) THIS->stack_ptr -= nparams;
         THIS->update_fn = 0;
         return;
