@@ -150,33 +150,22 @@ UBYTE wait_frames(void * THIS, UBYTE start, UBYTE nparams, UWORD * stack_frame) 
     // we allocate one local variable (just write ahead of VM stack pointer, we have no interrupts, our local variables won't get spoiled)
     if (start) stack_frame[1] = sys_time;
     // check wait condition
-    return ((sys_time - stack_frame[1]) > stack_frame[0]);
+    return ((sys_time - stack_frame[1]) < stack_frame[0]) ? ((SCRIPT_CTX *)THIS)->waitable = 1, 0 : 1;
 }
 // calls C handler until it returns true; callee cleanups stack
 void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams, INT16 idx) __banked {
     FAR_PTR newptr = to_far_ptr(fn, bank);
-    UWORD * stack_frame;
-    if (idx < 0) stack_frame = THIS->stack_ptr + idx; else stack_frame = script_memory + idx;
-
+    UWORD * stack_frame = (idx < 0) ? THIS->stack_ptr + idx : script_memory + idx;
     // update function pointer
-    if (THIS->update_fn != newptr) {
-        THIS->update_fn = newptr;
-        // call here with init == true
-        if (FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, 1, nparams, stack_frame)) {
-            THIS->stack_ptr -= nparams;
-            THIS->update_fn = 0;
-            return;
-        }
-    }
-    if (FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, 0, nparams, stack_frame)) {
-        THIS->stack_ptr -= nparams;
+    UBYTE start = (THIS->update_fn != newptr) ? THIS->update_fn = newptr, 1 : 0;
+    // call handler
+    if (FAR_CALL(newptr, SCRIPT_UPDATE_FN, THIS, start, nparams, stack_frame)) {
+        if (nparams) THIS->stack_ptr -= nparams;
         THIS->update_fn = 0;
         return;
     }
     // call handler again, wait condition is not met
     THIS->PC -= (INSTRUCTION_SIZE + sizeof(bank) + sizeof(fn) + sizeof(nparams) + sizeof(idx));
-    // indicate waitable state
-    THIS->waitable = 1;
 } 
 
 // runs script in a new thread
