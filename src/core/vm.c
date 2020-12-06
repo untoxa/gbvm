@@ -462,24 +462,33 @@ __asm
 
         ld a, (hl-)
         ld e, a                 ; e = args_len
-        ld a, (hl-)
-        ld l, (hl)
-        ld h, a                 ; hl = fn
+        ld b, (hl)
+        dec hl
+        ld c, (hl)              ; bc = fn
 
-        pop bc                  ; bc points to the next VM instruction or a first byte of the args
-        ld a, e
-        or a
-        ld d, a
-        jr z, 1$                ; no args?
+        pop hl                  ; hl points to the next VM instruction or a first byte of the args
+        ld d, e                 ; d = param count
+        srl d
+        jr nc, 4$
+        ld a, (hl+)
+        push af
+        inc sp
+4$:
+        jr z, 1$
 2$:                             ; copy args onto stack
-        ld a, (bc)
-        inc bc
+        ld a, (hl+)
+        push af
+        inc sp
+        ld a, (hl+)
         push af
         inc sp
         dec d
         jr nz, 2$
-1$:                             ; bc points to the next VM instruction
-        push hl                 ; save function pointer
+1$:
+        push bc                 ; save function pointer
+
+        ld b, h
+        ld c, l                 ; bc points to the next VM instruction
 
         lda hl, 8(sp)
         add hl, de              ; add correction
@@ -491,7 +500,7 @@ __asm
         ld a, h
         inc hl
         ld (hl), b              ; PC = PC + sizeof(instruction) + args_len
-        ld b, a                 ; bc = &PC
+        ld b, a                 ; bc = THIS
 
         pop hl                  ; restore function pointer
         push bc                 ; pushing THIS
