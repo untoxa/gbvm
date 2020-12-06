@@ -18,17 +18,17 @@ ___bank_BYTECODE = 3
 
 _BYTECODE::
         VM_GET_SYSTIME  2               ; sys_time(&global[2])
-        VM_GET_INT16    0, ^/(_ACTORS + (sizeof_actor_t * 1) + actor_t.ID)/     ; ACTORS[1].ID
+        VM_GET_INT16    0, ^/(_ACTORS + (sizeof_actor_t * 1) + actor_t.ID)/     ; global[0] = ACTORS[1].ID
 
         VM_RPN                          ; push(abs(5 - 3 + global[0] + -6))  result is 2
             .R_INT8     5
             .R_INT8     3
-            .R_OPERATOR "-"
+            .R_OPERATOR .SUB
             .R_REF      0
-            .R_OPERATOR "+"
+            .R_OPERATOR .ADD
             .R_INT16    -6
-            .R_OPERATOR "+"
-            .R_OPERATOR "@"
+            .R_OPERATOR .ADD
+            .R_OPERATOR .ABS
             .R_STOP
 
         VM_SET          1, .ARG0        ; global[1] = *(SP-1)
@@ -87,7 +87,7 @@ _BYTECODE::
         VM_RPN                          ; push(tmp - global[2])
             .R_REF      .ARG0
             .R_REF      3
-            .R_OPERATOR "-"
+            .R_OPERATOR .SUB
             .R_STOP
 
         VM_DEBUG        1               ; printf("Main terminated\nexec time: %d", tmp)
@@ -102,7 +102,7 @@ _BYTECODE::
         .dw .ARG0
         .asciz "wait(1s) bank: %d"
         VM_SET_CONST    .ARG0, 60       ; reuse value on the top of stack, set to 60
-        VM_INVOKE       b_wait_frames, _wait_frames, 1  ; call wait_frames(), dispose 1 parameter on stack after
+        VM_INVOKE       b_wait_frames, _wait_frames, 1, .ARG0  ; call wait_frames(), dispose 1 parameter on stack after
         VM_RET
 
 ___bank_THREAD1 = 3
@@ -132,9 +132,9 @@ _THREAD1::
         VM_RPN                          ; complex condition test (note: full boolean evaluation)
             .R_INT8     1
             .R_INT8     0
-            .R_OPERATOR "a"
+            .R_OPERATOR .AND
             .R_INT16    3
-            .R_OPERATOR "o"
+            .R_OPERATOR .OR
             .R_STOP
         VM_IF_CONST .NE .ARG0, 1, 4$, 1         ; if !((bool)1 && (bool)0 || (bool)3) goto 4$; (dispose RPN result)
 
@@ -146,7 +146,7 @@ _THREAD1::
         VM_DEBUG        0
         .asciz "wait(1.5s) thread"
         VM_PUSH         90              ; 60 frames == 1s
-        VM_INVOKE       b_wait_frames, _wait_frames, 1  ; call wait_frames(); dispose 1 parameter on stack after
+        VM_INVOKE       b_wait_frames, _wait_frames, 1, .ARG0  ; call wait_frames(); dispose 1 parameter on stack after
         VM_PUSH         75
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
         VM_DEBUG        0

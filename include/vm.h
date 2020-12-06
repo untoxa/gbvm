@@ -41,6 +41,18 @@ typedef struct SCRIPT_CTX {
 #define CONTEXT_STACK_SIZE 16
 // number of shared variables
 #define MAX_GLOBAL_VARS 32
+// quant size
+#define INSTRUCTIONS_PER_QUANT 0x10
+
+// logical operators
+#define VM_OP_EQ  1
+#define VM_OP_LT  2
+#define VM_OP_LE  3
+#define VM_OP_GT  4
+#define VM_OP_GE  5
+#define VM_OP_NE  6
+#define VM_OP_AND 7
+#define VM_OP_OR  8
 
 // shared context memory
 extern UWORD script_memory[MAX_GLOBAL_VARS + (SCRIPT_MAX_CONTEXTS * CONTEXT_STACK_SIZE)];  // maximum stack depth is 16 words
@@ -58,7 +70,7 @@ void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 * pc, UBYTE n) __banked;
 void vm_jump_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked;
 void vm_jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked;
 void vm_systime(SCRIPT_CTX * THIS, INT16 idx) __banked;
-void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams) __banked;
+void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams, INT16 idx) __banked;
 void vm_beginthread(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx, UBYTE nargs) __nonbanked;
 void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) __banked;
 void vm_if_const(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 B, UBYTE * pc, UBYTE n) __banked;

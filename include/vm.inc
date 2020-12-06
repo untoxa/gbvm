@@ -103,8 +103,8 @@ OP_VM_GET_SYSTIME  = 0x0C
 
 ; invokes <bank>:<address> C function until it returns true
 OP_VM_INVOKE       = 0x0D
-.macro VM_INVOKE ARG0, ARG1, ARG2
-        .db OP_VM_INVOKE, #<ARG2, #>ARG1, #<ARG1, #<ARG0
+.macro VM_INVOKE ARG0, ARG1, ARG2, ARG3
+        .db OP_VM_INVOKE, #>ARG3, #<ARG3, #<ARG2, #>ARG1, #<ARG1, #<ARG0
 .endm
 
 ; spawns a thread in a separate context
@@ -115,12 +115,14 @@ OP_VM_BEGINTHREAD  = 0x0E
 
 ; condition
 OP_VM_IF           = 0x0F
-.EQ                = 0
-.LT                = 1
-.LTE               = 2
-.GT                = 3
-.GTE               = 4
-.NE                = 5
+.EQ                = 1
+.LT                = 2
+.LTE               = 3
+.GT                = 4
+.GTE               = 5
+.NE                = 6
+.AND               = 7
+.OR                = 8
 .macro VM_IF CONDITION, IDXA, IDXB, LABEL, N
         .db OP_VM_IF, #<N, #>LABEL, #<LABEL, #>IDXB, #<IDXB, #>IDXA, #<IDXA, #<CONDITION
 .endm
@@ -157,6 +159,15 @@ OP_VM_SET_CONST  = 0x14
 
 ; rpn calculator, returns result on VM stack
 OP_VM_RPN        = 0x15
+.ADD             = '+'
+.SUB             = '-'
+.MUL             = '*'
+.DIV             = '/'
+.MOD             = '%'
+.B_AND           = '&'
+.B_OR            = '|'
+.B_XOR           = '^'
+.ABS             = '@' 
 .macro VM_RPN
         .db OP_VM_RPN
 .endm
