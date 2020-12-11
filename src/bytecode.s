@@ -1,4 +1,4 @@
-.include "vm.inc"
+.include "vm.i"
         
 .globl b_wait_frames, _wait_frames
 
