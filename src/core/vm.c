@@ -437,21 +437,19 @@ __asm
         push bc                 ; store bc
         push hl
 
-        add a
-        add e                   ; a = a * sizeof(SCRIPT_CMD)
-
-        ld hl, #_script_cmds
-        add l
-        ld l, a
-        adc h
-        sub l
-        ld h, a                 ; hl = &script_cmds[command+1]
-        dec hl                  ; hl = &script_cmds[command].args_len
+        ld d, #0
+        ld h, d
+        ld l, e
+        add hl, hl
+        add hl, de              ; hl = de * sizeof(SCRIPT_CMD)
+        dec hl
+        ld de, #_script_cmds
+        add hl, de              ; hl = &script_cmds[command].args_len
 
         ld a, (hl-)
         ld e, a                 ; e = args_len
-        ld b, (hl)
-        dec hl
+        ld a, (hl-)
+        ld b, a
         ld c, (hl)              ; bc = fn
 
         pop hl                  ; hl points to the next VM instruction or a first byte of the args
@@ -503,8 +501,8 @@ __asm
         rst 0x20                ; call hl
 
         pop hl                  ; hl: args_len
-        add hl, sp              ; deallocate args_len bytes from the stack
-        ld sp, hl
+        add hl, sp
+        ld sp, hl               ; deallocate args_len bytes from the stack
         add sp, #4              ; deallocate dummy word and THIS
 
         pop bc                  ; restore bc
