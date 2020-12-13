@@ -494,7 +494,7 @@ __asm
         push bc                 ; pushing THIS
 
         push de                 ; not used
-        push de                 ; d: fn_bank, e: args_len
+        push de                 ; de: args_len
 
         ld a, #b_vm_call        ; a = script_bank (all script functions in one bank: take any complimantary symbol)
         ldh (__current_bank), a
@@ -502,14 +502,10 @@ __asm
 
         rst 0x20                ; call hl
 
-        pop hl                  ; h: _current_bank, l: args_len
-
-        ld  h, #0
-        ld  a, #4
-        add l
-        ld l, a
-        add hl, sp              ; deallocate dummy word, this and args_len bytes from the stack
+        pop hl                  ; hl: args_len
+        add hl, sp              ; deallocate args_len bytes from the stack
         ld sp, hl
+        add sp, #4              ; deallocate dummy word and THIS
 
         pop bc                  ; restore bc
 
