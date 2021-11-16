@@ -59,7 +59,7 @@ SCRIPT_CTX * first_ctx, * free_ctxs;
 // then you may declare it without params at all bacause caller clears stack - that is safe
 
 // this is a call instruction, it pushes return address onto VM stack
-void vm_call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked {
+void vm_call_rel(SCRIPT_CTX * THIS, INT8 ofs) OLDCALL __banked {
     // push current VM PC onto VM stack
     *(THIS->stack_ptr++) = (UWORD)THIS->PC;
     // modify VM PC (goto PC + ofs)
@@ -68,12 +68,12 @@ void vm_call_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked {
     THIS->PC += ofs;    
 }
 // call absolute instruction
-void vm_call(SCRIPT_CTX * THIS, UBYTE * pc) __banked {
+void vm_call(SCRIPT_CTX * THIS, UBYTE * pc) OLDCALL __banked {
     *(THIS->stack_ptr++) = (UWORD)THIS->PC;
     THIS->PC = pc;    
 }
 // return instruction returns to a point where call was invoked
-void vm_ret(SCRIPT_CTX * THIS, UBYTE n) __banked {
+void vm_ret(SCRIPT_CTX * THIS, UBYTE n) OLDCALL __banked {
     // pop VM PC from VM stack
     THIS->stack_ptr--;
     THIS->PC = (const UBYTE *)*(THIS->stack_ptr);
@@ -81,14 +81,14 @@ void vm_ret(SCRIPT_CTX * THIS, UBYTE n) __banked {
 }
 
 // far call to another bank
-void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) __banked {
+void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc) OLDCALL __banked {
     *(THIS->stack_ptr++) = (UWORD)THIS->PC;
     *(THIS->stack_ptr++) = THIS->bank;
     THIS->PC = pc;
     THIS->bank = bank;
 }
 // ret from far call
-void vm_ret_far(SCRIPT_CTX * THIS, UBYTE n) __banked {
+void vm_ret_far(SCRIPT_CTX * THIS, UBYTE n) OLDCALL __banked {
     THIS->stack_ptr--;
     THIS->bank = (UBYTE)(*(THIS->stack_ptr));
     THIS->stack_ptr--;
@@ -99,17 +99,17 @@ void vm_ret_far(SCRIPT_CTX * THIS, UBYTE n) __banked {
 // you can also invent calling convention and pass parameters to scripts on VM stack,
 // make a library of scripts and so on
 // pushes word onto VM stack
-void vm_push(SCRIPT_CTX * THIS, UWORD value) __banked {
+void vm_push(SCRIPT_CTX * THIS, UWORD value) OLDCALL __banked {
     *(THIS->stack_ptr++) = value;
 }
 // cleans up to n words from stack and returns last one 
- UWORD vm_pop(SCRIPT_CTX * THIS, UBYTE n) __banked {
+ UWORD vm_pop(SCRIPT_CTX * THIS, UBYTE n) OLDCALL __banked {
     if (n) THIS->stack_ptr -= n;
     return *(THIS->stack_ptr);
 }
 
 // do..while loop, callee cleanups stack
-void vm_loop_rel(SCRIPT_CTX * THIS, INT16 idx, INT8 ofs, UBYTE n) __banked {
+void vm_loop_rel(SCRIPT_CTX * THIS, INT16 idx, INT8 ofs, UBYTE n) OLDCALL __banked {
     UWORD * counter;
     if (idx < 0) counter = THIS->stack_ptr + idx; else counter = script_memory + idx;
     if (*counter) {
@@ -119,7 +119,7 @@ void vm_loop_rel(SCRIPT_CTX * THIS, INT16 idx, INT8 ofs, UBYTE n) __banked {
     }
 }
 // loop absolute, callee cleanups stack
-void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 * pc, UBYTE n) __banked {
+void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 * pc, UBYTE n) OLDCALL __banked {
     UWORD * counter;
     if (idx < 0) counter = THIS->stack_ptr + idx; else counter = script_memory + idx;
     if (*counter) {
@@ -130,29 +130,29 @@ void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 * pc, UBYTE n) __banked {
 }
 
 // jump relative
-void vm_jump_rel(SCRIPT_CTX * THIS, INT8 ofs) __banked {
+void vm_jump_rel(SCRIPT_CTX * THIS, INT8 ofs) OLDCALL __banked {
     THIS->PC += ofs;    
 }
 // jump absolute
-void vm_jump(SCRIPT_CTX * THIS, UBYTE * pc) __banked {
+void vm_jump(SCRIPT_CTX * THIS, UBYTE * pc) OLDCALL __banked {
     THIS->PC = pc;    
 }
 
 // returns systime 
-void vm_systime(SCRIPT_CTX * THIS, INT16 idx) __banked {
+void vm_systime(SCRIPT_CTX * THIS, INT16 idx) OLDCALL __banked {
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
     *A = sys_time;
 } 
 
-UBYTE wait_frames(void * THIS, UBYTE start, UWORD * stack_frame) __banked {
+UBYTE wait_frames(void * THIS, UBYTE start, UWORD * stack_frame) OLDCALL __banked {
     // we allocate one local variable (just write ahead of VM stack pointer, we have no interrupts, our local variables won't get spoiled)
     if (start) stack_frame[1] = sys_time;
     // check wait condition
     return ((sys_time - stack_frame[1]) < stack_frame[0]) ? ((SCRIPT_CTX *)THIS)->waitable = 1, 0 : 1;
 }
 // calls C handler until it returns true; callee cleanups stack
-void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams, INT16 idx) __banked {
+void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams, INT16 idx) OLDCALL __banked {
     UWORD * stack_frame = (idx < 0) ? THIS->stack_ptr + idx : script_memory + idx;
     // update function pointer
     UBYTE start = ((THIS->update_fn != fn) || (THIS->update_fn_bank != bank)) ? THIS->update_fn = fn, THIS->update_fn_bank = bank, 1 : 0;
@@ -167,7 +167,7 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams, INT16 i
 } 
 
 // runs script in a new thread
-void vm_beginthread(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx, UBYTE nargs) __nonbanked {
+void vm_beginthread(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx, UBYTE nargs) OLDCALL __nonbanked {
     dummy0; dummy1;
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
@@ -187,13 +187,13 @@ void vm_beginthread(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE bank, U
     }
 }
 // 
-void vm_join(SCRIPT_CTX * THIS, INT16 idx) __banked {
+void vm_join(SCRIPT_CTX * THIS, INT16 idx) OLDCALL __banked {
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
     if (!(*A >> 8)) THIS->PC -= (INSTRUCTION_SIZE + sizeof(idx)), THIS->waitable = 1;
 }
 // 
-void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) __banked {
+void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) OLDCALL __banked {
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
     TerminateScript((UBYTE)(*A));
@@ -202,7 +202,7 @@ void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) __banked {
 // if condition; compares two arguments on VM stack
 // idxA, idxB point to arguments to compare
 // negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
-void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) __banked {
+void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * pc, UBYTE n) OLDCALL __banked {
     INT16 A, B;
     if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = script_memory[idxA];
     if (idxB < 0) B = *(THIS->stack_ptr + idxB); else B = script_memory[idxB];
@@ -221,7 +221,7 @@ void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE * p
 // if condition; compares argument on VM stack with an immediate value
 // idxA point to arguments to compare, B is a value
 // negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
-void vm_if_const(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 B, UBYTE * pc, UBYTE n) __banked {
+void vm_if_const(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 B, UBYTE * pc, UBYTE n) OLDCALL __banked {
     INT16 A;
     if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = script_memory[idxA];
     UBYTE res = 0;
@@ -238,29 +238,29 @@ void vm_if_const(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 B, UBYTE 
 }
 // pushes value from VM stack onto VM stack
 // if idx >= 0 then idx is absolute, else idx is relative to VM stack pointer
-void vm_pushvalue(SCRIPT_CTX * THIS, INT16 idx) __banked {
+void vm_pushvalue(SCRIPT_CTX * THIS, INT16 idx) OLDCALL __banked {
     if (idx < 0) *(THIS->stack_ptr) = *(THIS->stack_ptr + idx); else *(THIS->stack_ptr) = script_memory[idx];
     THIS->stack_ptr++;
 }
 // manipulates VM stack pointer
-void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) __banked {
+void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) OLDCALL __banked {
     THIS->stack_ptr += ofs;
 }
 // sets value on stack indexed by idxA to value on stack indexed by idxB 
-void vm_set(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked {
+void vm_set(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL __banked {
     INT16 * A, * B;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     if (idxB < 0) B = THIS->stack_ptr + idxB; else B = script_memory + idxB;
     *A = *B;
 }
 // sets value on stack indexed by idx to value
-void vm_set_const(SCRIPT_CTX * THIS, INT16 idx, UWORD value) __banked {
+void vm_set_const(SCRIPT_CTX * THIS, INT16 idx, UWORD value) OLDCALL __banked {
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
     *A = value;
 }
 // sets value on stack indexed by idxA to value on stack indexed by idxB 
-void vm_get_tlocal(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked {
+void vm_get_tlocal(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL __banked {
     INT16 * A, * B;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     if (idxB < 0) B = THIS->stack_ptr + idxB; else B = THIS->base_addr + idxB;
@@ -268,7 +268,7 @@ void vm_get_tlocal(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) __banked {
 }
 // rpn calculator; must be __nonbanked because we access VM bytecode
 // dummy parameters are needed to make nonbanked function to be compatible with banked call
-void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
+void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) OLDCALL __nonbanked {
     dummy0; dummy1; // suppress warnings
     INT16 * A, * B, * ARGS;
     INT16 idx;
@@ -337,12 +337,11 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) __nonbanked {
     }
 }
 
-// text buffer
-unsigned char display_text[80];
-
 // prints debug string into the text buffer then outputs to screen
-void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonbanked {
+void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) OLDCALL __nonbanked {
     dummy0; dummy1; // suppress warnings
+
+    static unsigned char display_text[80];
 
     UBYTE _save = _current_bank;
     SWITCH_ROM_MBC1(THIS->bank);
@@ -359,7 +358,7 @@ void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonb
                 case 'd':
                     idx = *((INT16 *)args);
                     if (idx < 0) idx = *(THIS->stack_ptr + idx); else idx = script_memory[idx];
-                    d += strlen(itoa(idx, d));
+                    d += strlen(itoa(idx, d, 10));
                     s++;
                     args += 2;
                     continue;
@@ -380,24 +379,24 @@ void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) __nonb
 }
 
 // puts context into a waitable state
-void vm_idle(SCRIPT_CTX * THIS) __banked {
+void vm_idle(SCRIPT_CTX * THIS) OLDCALL __banked {
     THIS->waitable = 1;
 }
 
 // gets unsigned int8 from RAM by address
-void vm_get_uint8(SCRIPT_CTX * THIS, INT16 idxA, UINT8 * addr) __banked {
+void vm_get_uint8(SCRIPT_CTX * THIS, INT16 idxA, UINT8 * addr) OLDCALL __banked {
     INT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     *A = *addr;
 }
 // gets int8 from RAM by address
-void vm_get_int8(SCRIPT_CTX * THIS, INT16 idxA, INT8 * addr) __banked {
+void vm_get_int8(SCRIPT_CTX * THIS, INT16 idxA, INT8 * addr) OLDCALL __banked {
     INT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     *A = *addr;
 }
 // gets int16 from RAM by address
-void vm_get_int16(SCRIPT_CTX * THIS, INT16 idxA, INT16 * addr) __banked {
+void vm_get_int16(SCRIPT_CTX * THIS, INT16 idxA, INT16 * addr) OLDCALL __banked {
     INT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     *A = *addr;
@@ -405,7 +404,7 @@ void vm_get_int16(SCRIPT_CTX * THIS, INT16 idxA, INT16 * addr) __banked {
 // executes one step in the passed context
 // return zero if script end
 // bank with VM code must be active
-UBYTE STEP_VM(SCRIPT_CTX * CTX) __naked __nonbanked __preserves_regs(b, c) {
+UBYTE STEP_VM(SCRIPT_CTX * CTX) OLDCALL __naked __nonbanked __preserves_regs(b, c) {
     CTX;
 __asm
         lda hl, 2(sp)
@@ -453,25 +452,25 @@ __asm
         ld c, (hl)              ; bc = fn
 
         pop hl                  ; hl points to the next VM instruction or a first byte of the args
+        push bc                 ; save function pointer
+        
         ld d, e                 ; d = param count
         srl d
-        jr nc, 4$
-        ld a, (hl+)
+        jr nc, 4$               ; d is even?
+        ld a, (hl+)             ; copy one arg onto stack
         push af
         inc sp
 4$:
-        jr z, 1$
-2$:                             ; copy args onto stack
+        jr z, 1$                ; only one parameter?
+2$:                             
         ld a, (hl+)
-        push af
-        inc sp
+        ld b, a 
         ld a, (hl+)
-        push af
-        inc sp
+        ld c, a
+        push bc
         dec d
-        jr nz, 2$
+        jr nz, 2$               ; loop through remaining parameters, copy 2 bytes at a time
 1$:
-        push bc                 ; save function pointer
 
         ld b, h
         ld c, l                 ; bc points to the next VM instruction
@@ -488,7 +487,12 @@ __asm
         ld (hl), b              ; PC = PC + sizeof(instruction) + args_len
         ld b, a                 ; bc = THIS
 
-        pop hl                  ; restore function pointer
+        lda hl, 0(sp)
+        add hl, de              ; add correction
+        ld a, (hl+)
+        ld h, (hl)
+        ld l, a                 ; hl = function pointer
+
         push bc                 ; pushing THIS
 
         push de                 ; not used
@@ -503,7 +507,7 @@ __asm
         pop hl                  ; hl: args_len
         add hl, sp
         ld sp, hl               ; deallocate args_len bytes from the stack
-        add sp, #4              ; deallocate dummy word and THIS
+        add sp, #6              ; deallocate dummy word, THIS and function pointer
 
         pop bc                  ; restore bc
 

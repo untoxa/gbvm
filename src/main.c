@@ -1,5 +1,5 @@
-#include <gb/gb.h>
-#include <gb/font.h>
+#include <gbdk/platform.h>
+#include <gbdk/font.h>
 #include <stdio.h>
 
 #include "vm.h"
