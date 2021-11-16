@@ -29,7 +29,7 @@ LCCFLAGS += -Wl-j
 CFLAGS = -Wf-Iinclude -Wa-Iinclude
 
 # You can set the name of the ROM file here
-PROJECTNAME = blackcastle
+PROJECTNAME = VM_demo
 
 # EXT?=gb # Only sets extension to default (game boy .gb) if not populated
 SRCDIR      = src
