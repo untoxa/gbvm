@@ -8,7 +8,7 @@
 *.sym
 __pycache__
 /profile/*.txt
-@usage.bat
+*.bat
 *.ihx
 *.noi
 /.vscode
