@@ -5,7 +5,7 @@
 #include "vm.h"
 
 extern const UBYTE BYTECODE[];                  // defined in bytecode.s
-extern void __bank_BYTECODE;
+BANKREF_EXTERN(BYTECODE)
 
 typedef struct actor_t {
     INT16 x, y;
@@ -15,8 +15,7 @@ typedef struct actor_t {
 const actor_t ACTORS[2] = {
     { 
         .ID = 1
-    }, 
-    {
+    },{
         .ID = 2
     }
 };
@@ -36,7 +35,7 @@ void main() {
     font_set(font_load(font_spect));
     
     ScriptRunnerInit();
-    ExecuteScript((UBYTE)&__bank_BYTECODE, BYTECODE, 0, 0);
+    ExecuteScript(BANK(BYTECODE), BYTECODE, 0, 0);
     printf(">> VM START\n");
     process_VM();
     printf("<< VM DONE");
