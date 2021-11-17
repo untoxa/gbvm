@@ -13,3 +13,6 @@ Instead of 100 words:
 
 Game structures overlaying:
 ![scheme](/scheme2.png)
+
+Example of execution on the Sega Game Gear:
+![example](/example.png)
