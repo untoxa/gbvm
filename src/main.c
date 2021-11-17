@@ -39,5 +39,5 @@ void main() {
     ExecuteScript((UBYTE)&__bank_BYTECODE, BYTECODE, 0, 0);
     printf(">> VM START\n");
     process_VM();
-    printf("<< VM DONE\n");
+    printf("<< VM DONE");
 }

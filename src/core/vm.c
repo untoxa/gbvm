@@ -167,7 +167,7 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams, INT16 i
 } 
 
 // runs script in a new thread
-void vm_beginthread(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx, UBYTE nargs) OLDCALL __nonbanked {
+void vm_beginthread(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE * pc, INT16 idx, UBYTE nargs) OLDCALL __nonbanked {
     dummy0; dummy1;
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
@@ -176,14 +176,14 @@ void vm_beginthread(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE bank, U
     if (!(nargs)) return;
     if (ctx) {
         UBYTE _save = _current_bank;        // we must preserve current bank, 
-        SWITCH_ROM_MBC1(THIS->bank);        // then switch to bytecode bank
+        SWITCH_ROM(THIS->bank);        // then switch to bytecode bank
         for (UBYTE i = 0; i < nargs; i++) {
             UWORD * A;
             if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
             *(ctx->stack_ptr++) = *A;
             THIS->PC += 2;
         }
-        SWITCH_ROM_MBC1(_save);
+        SWITCH_ROM(_save);
     }
 }
 // 
@@ -268,13 +268,13 @@ void vm_get_tlocal(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL __banked {
 }
 // rpn calculator; must be __nonbanked because we access VM bytecode
 // dummy parameters are needed to make nonbanked function to be compatible with banked call
-void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) OLDCALL __nonbanked {
+void vm_rpn(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS) OLDCALL __nonbanked {
     dummy0; dummy1; // suppress warnings
     INT16 * A, * B, * ARGS;
     INT16 idx;
 
     UBYTE _save = _current_bank;        // we must preserve current bank, 
-    SWITCH_ROM_MBC1(THIS->bank);        // then switch to bytecode bank
+    SWITCH_ROM(THIS->bank);        // then switch to bytecode bank
 
     ARGS = THIS->stack_ptr;
     while (1) {
@@ -299,7 +299,7 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) OLDCALL __nonbanked {
                     *(THIS->stack_ptr) = op;
                     break;
                 default:
-                    SWITCH_ROM_MBC1(_save);         // restore bank
+                    SWITCH_ROM(_save);         // restore bank
                     return;
             }
             THIS->stack_ptr++;
@@ -329,7 +329,7 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) OLDCALL __nonbanked {
                 case '@': *B = abs(*B); continue;
                 // terminator
                 default:
-                    SWITCH_ROM_MBC1(_save);         // restore bank
+                    SWITCH_ROM(_save);         // restore bank
                     return;
             }
             THIS->stack_ptr--;
@@ -338,13 +338,13 @@ void vm_rpn(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS) OLDCALL __nonbanked {
 }
 
 // prints debug string into the text buffer then outputs to screen
-void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) OLDCALL __nonbanked {
+void vm_debug(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE nargs) OLDCALL __nonbanked {
     dummy0; dummy1; // suppress warnings
 
     static unsigned char display_text[80];
 
     UBYTE _save = _current_bank;
-    SWITCH_ROM_MBC1(THIS->bank);
+    SWITCH_ROM(THIS->bank);
     
     const UBYTE * args = THIS->PC;
     unsigned char * d = display_text; 
@@ -374,7 +374,7 @@ void vm_debug(UWORD dummy0, UWORD dummy1, SCRIPT_CTX * THIS, UBYTE nargs) OLDCAL
 
     puts(display_text);
 
-    SWITCH_ROM_MBC1(_save);
+    SWITCH_ROM(_save);
     THIS->PC = s;
 }
 
@@ -404,8 +404,9 @@ void vm_get_int16(SCRIPT_CTX * THIS, INT16 idxA, INT16 * addr) OLDCALL __banked 
 // executes one step in the passed context
 // return zero if script end
 // bank with VM code must be active
-UBYTE STEP_VM(SCRIPT_CTX * CTX) OLDCALL __naked __nonbanked __preserves_regs(b, c) {
+UBYTE STEP_VM(SCRIPT_CTX * CTX) __naked __nonbanked STEP_FUNC_ATTR {
     CTX;
+#if defined(NINTENDO)
 __asm
         lda hl, 2(sp)
         ld a, (hl+)
@@ -519,6 +520,104 @@ __asm
 
         ret
 __endasm;
+#elif defined(SEGA)
+__asm    
+        .ez80
+
+        push ix
+
+        ex de, hl
+        ld ixh, d
+        ld ixl, e
+        ex de, hl
+
+        ld l, 0 (ix)
+        ld h, 1 (ix)
+
+        ld a, (_MAP_FRAME1)
+        push af
+
+        ld a, 2 (ix)
+        ld (_MAP_FRAME1), a
+        
+        ld a, (hl)              ; load current command and return if terminator
+        inc hl
+        ld e, a
+        or a
+        jr z, 3$
+
+        ld d, #0
+        dec e
+
+        ld iyh, d
+        ld iyl, e
+
+        add iy, iy      
+        add iy, de              ; hl = de * sizeof(SCRIPT_CMD)
+
+        ld de, #_script_cmds
+        add iy, de              ; hl = &script_cmds[command].args_len
+
+        ld c, 0 (iy)
+        ld b, 1 (iy)            ; bc = fn
+        ld e, 2 (iy)            ; e = args_len
+
+        ld iyh, b
+        ld iyl, c               ; iy = function pointer
+        
+        ld d, e                 ; d = param count
+        srl d
+        jr nc, 4$               ; d is even?
+        ld a, (hl)              ; copy one arg onto stack
+        inc hl
+        push af
+        inc sp
+4$:
+        jr z, 1$                ; only one parameter?
+2$:                             
+        ld b, (hl)
+        inc hl
+        ld c, (hl)
+        inc hl
+        push bc
+        dec d
+        jr nz, 2$               ; loop through remaining parameters, copy 2 bytes at a time
+1$:
+
+        ld 0 (ix), l
+        ld 1 (ix), h            ; PC = PC + sizeof(instruction) + args_len
+
+        push ix                 ; pushing THIS
+
+        push de                 ; de: args_len
+        dec sp                  ; not used
+
+        ld a, #b_vm_call        ; a = script_bank (all script functions in one bank: take any complimantary symbol)
+        ld (_MAP_FRAME1), a     ; switch bank with functions
+
+        call 5$
+
+        inc sp
+
+        pop hl                  ; hl: args_len
+        pop de                  ; deallocate THIS
+        add hl, sp
+        ld sp, hl
+
+        ld e, #1                ; command executed
+3$:     
+        pop af
+        ld (_MAP_FRAME1), a     ; restore bank
+
+        pop ix
+
+        ld l, e                 ; __z88dk_fastcall function must return result in l
+
+        ret
+5$:
+        jp (iy)
+__endasm;
+#endif
 }
 // dummy function for __addressmod attribure, it never gets called
 void ___vm_dummy_fn(void) __nonbanked __preserves_regs(a, b, c, d, e, h, l) __naked { __asm__("ret"); }
