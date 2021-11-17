@@ -9,10 +9,13 @@ Notes:
 - context's stack grows ahead
 
 Instead of 100 words:
+
 ![scheme](/scheme.png)
 
 Game structures overlaying:
+
 ![scheme](/scheme2.png)
 
 Example of execution on the Sega Game Gear:
+
 ![example](/example.png)
