@@ -541,7 +541,8 @@ __asm
         ld d, #0
         dec e
 
-        push hl
+        ld b, h
+        ld c, l                 ; save hl to bc
 
         ld h, d
         ld l, e
@@ -550,15 +551,17 @@ __asm
         add hl, de              ; hl = de * sizeof(SCRIPT_CMD)
 
         ld de, #_script_cmds
-        add hl, de              ; hl = &script_cmds[command].args_len
+        add hl, de              ; hl = &script_cmds[command]
 
         ld e, (hl)
         inc hl
         ld d, (hl)              ; de = fn
         inc hl
-        ld c, (hl)
-        
-        pop hl
+        ld a, (hl)
+
+        ld h, b
+        ld l, c                 ; restore hl from bc
+        ld c, a
 
         ld b, c                 ; b = c = args_len
         srl b
