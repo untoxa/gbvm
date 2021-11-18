@@ -429,7 +429,7 @@ __asm
         ldh (__current_bank), a
         ld (0x2000), a          ; switch bank with vm code
         
-        ld a, (HL+)             ; load current command and return if terminator
+        ld a, (hl+)             ; load current command and return if terminator
         ld e, a
         or a
         jr z, 3$
@@ -453,25 +453,25 @@ __asm
         ld c, (hl)              ; bc = fn
 
         pop hl                  ; hl points to the next VM instruction or a first byte of the args
-        push bc                 ; save function pointer
-        
-        ld d, e                 ; d = param count
+        ld d, e                 ; d = arg count
         srl d
         jr nc, 4$               ; d is even?
         ld a, (hl+)             ; copy one arg onto stack
         push af
         inc sp
 4$:
-        jr z, 1$                ; only one parameter?
+        jr z, 1$                ; only one arg?
 2$:                             
         ld a, (hl+)
-        ld b, a 
+        push af
+        inc sp
         ld a, (hl+)
-        ld c, a
-        push bc
+        push af
+        inc sp
         dec d
-        jr nz, 2$               ; loop through remaining parameters, copy 2 bytes at a time
+        jr nz, 2$               ; loop through remaining args, copy 2 bytes at a time
 1$:
+        push bc                 ; save function pointer
 
         ld b, h
         ld c, l                 ; bc points to the next VM instruction
@@ -488,18 +488,13 @@ __asm
         ld (hl), b              ; PC = PC + sizeof(instruction) + args_len
         ld b, a                 ; bc = THIS
 
-        lda hl, 0(sp)
-        add hl, de              ; add correction
-        ld a, (hl+)
-        ld h, (hl)
-        ld l, a                 ; hl = function pointer
-
+        pop hl                  ; restore function pointer
         push bc                 ; pushing THIS
 
         push de                 ; not used
         push de                 ; de: args_len
 
-        ld a, #b_vm_call        ; a = script_bank (all script functions in one bank: take any complimantary symbol)
+        ld a, #<b_vm_call       ; a = script_bank (all script functions in one bank: take any complimantary symbol)
         ldh (__current_bank), a
         ld (0x2000), a          ; switch bank with functions
 
@@ -508,7 +503,7 @@ __asm
         pop hl                  ; hl: args_len
         add hl, sp
         ld sp, hl               ; deallocate args_len bytes from the stack
-        add sp, #6              ; deallocate dummy word, THIS and function pointer
+        add sp, #4              ; deallocate dummy word and THIS
 
         pop bc                  ; restore bc
 
@@ -524,20 +519,17 @@ __endasm;
 __asm    
         .ez80
 
-        push ix
-
         ex de, hl
-        ld ixh, d
-        ld ixl, e
-        ex de, hl
+        ld iyh, d
+        ld iyl, e
 
-        ld l, 0 (ix)
-        ld h, 1 (ix)
+        ld l, 0 (iy)
+        ld h, 1 (iy)
 
         ld a, (_MAP_FRAME1)
         push af
 
-        ld a, 2 (ix)
+        ld a, 2 (iy)
         ld (_MAP_FRAME1), a
         
         ld a, (hl)              ; load current command and return if terminator
@@ -549,24 +541,27 @@ __asm
         ld d, #0
         dec e
 
-        ld iyh, d
-        ld iyl, e
+        push hl
 
-        add iy, iy      
-        add iy, de              ; hl = de * sizeof(SCRIPT_CMD)
+        ld h, d
+        ld l, e
+
+        add hl, hl      
+        add hl, de              ; hl = de * sizeof(SCRIPT_CMD)
 
         ld de, #_script_cmds
-        add iy, de              ; hl = &script_cmds[command].args_len
+        add hl, de              ; hl = &script_cmds[command].args_len
 
-        ld c, 0 (iy)
-        ld b, 1 (iy)            ; bc = fn
-        ld e, 2 (iy)            ; e = args_len
-
-        ld iyh, b
-        ld iyl, c               ; iy = function pointer
+        ld e, (hl)
+        inc hl
+        ld d, (hl)              ; de = fn
+        inc hl
+        ld c, (hl)
         
-        ld d, e                 ; d = param count
-        srl d
+        pop hl
+
+        ld b, c                 ; b = c = args_len
+        srl b
         jr nc, 4$               ; d is even?
         ld a, (hl)              ; copy one arg onto stack
         inc hl
@@ -575,27 +570,31 @@ __asm
 4$:
         jr z, 1$                ; only one parameter?
 2$:                             
-        ld b, (hl)
+        ld a, (hl)
         inc hl
-        ld c, (hl)
+        push af
+        inc sp
+        ld a, (hl)
         inc hl
-        push bc
-        dec d
+        push af
+        inc sp
+        dec b
         jr nz, 2$               ; loop through remaining parameters, copy 2 bytes at a time
 1$:
 
-        ld 0 (ix), l
-        ld 1 (ix), h            ; PC = PC + sizeof(instruction) + args_len
+        ld 0 (iy), l
+        ld 1 (iy), h            ; PC = PC + sizeof(instruction) + args_len
 
-        push ix                 ; pushing THIS
+        push iy                 ; pushing THIS
 
-        push de                 ; de: args_len
+        push bc                 ; bc: args_len
         dec sp                  ; not used
 
-        ld a, #b_vm_call        ; a = script_bank (all script functions in one bank: take any complimantary symbol)
+        ld a, #<b_vm_call       ; a = script_bank (all script functions in one bank: take any complimantary symbol)
         ld (_MAP_FRAME1), a     ; switch bank with functions
 
-        call 5$
+        ex de, hl
+        rst  0x30
 
         inc sp
 
@@ -609,13 +608,9 @@ __asm
         pop af
         ld (_MAP_FRAME1), a     ; restore bank
 
-        pop ix
-
         ld l, e                 ; __z88dk_fastcall function must return result in l
 
         ret
-5$:
-        jp (iy)
 __endasm;
 #endif
 }
