@@ -661,7 +661,7 @@ void script_runner_init(uint8_t reset) BANKED {
 // execute a script in the new allocated context
 // actually, it initializes free context with bytecode and moves it into the active context chain
 SCRIPT_CTX * script_execute(uint8_t bank, uint8_t * pc, uint16_t * handle, uint8_t nargs, ...) BANKED {
-    if (free_ctxs == 0) return NULL;
+    if (free_ctxs == NULL) return NULL;
 #ifdef SAFE_SCRIPT_EXECUTE
     if (pc == NULL) return NULL;
 #endif
@@ -682,8 +682,13 @@ SCRIPT_CTX * script_execute(uint8_t bank, uint8_t * pc, uint16_t * handle, uint8
     tmp->flags = 0;
     // Clear update fn
     tmp->update_fn_bank = 0;
-    // add context to active list
-    tmp->next = first_ctx, first_ctx = tmp;
+    // append context to active list
+    tmp->next = NULL;
+    if (first_ctx) {
+         SCRIPT_CTX * idx = first_ctx;
+         while (idx->next) idx = idx->next;
+         idx->next = tmp;
+    } else first_ctx = tmp;
     // push threadlocals
     if (nargs) {
         va_list va;
@@ -730,7 +735,8 @@ uint8_t script_runner_update() NONBANKED {
             // update handle if present
             if (ctx->hthread) *(ctx->hthread) |= SCRIPT_TERMINATED;
             // script is finished, remove from linked list
-            if (old_ctx) old_ctx->next = ctx->next; else first_ctx = ctx->next;
+            if (old_ctx) old_ctx->next = ctx->next;
+            if (first_ctx == ctx) first_ctx = ctx->next;
             // add terminated context to free contexts list
             ctx->next = free_ctxs, free_ctxs = ctx;
             // next context
