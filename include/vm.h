@@ -24,10 +24,17 @@ BANKREF_EXTERN(VM_MAIN)
 #define STEP_FUNC_ATTR
 typedef uint16_t DUMMY0_t;
 typedef uint16_t DUMMY1_t;
+#define DUMMY_SIGNATURE DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS
 #elif defined(SEGA)
 #define STEP_FUNC_ATTR Z88DK_FASTCALL
 typedef uint8_t DUMMY0_t;
 typedef uint16_t DUMMY1_t;
+#define DUMMY_SIGNATURE DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS
+#elif defined(NINTENDO_NES)
+#define STEP_FUNC_ATTR
+typedef uint8_t DUMMY0_t;
+typedef uint16_t DUMMY1_t;
+#define DUMMY_SIGNATURE SCRIPT_CTX * THIS, DUMMY0_t dummy0, DUMMY1_t dummy1
 #endif
 
 typedef void * SCRIPT_CMD_FN;
@@ -39,7 +46,7 @@ typedef struct _SCRIPT_CMD {
 } SCRIPT_CMD;
 
 #define FAR_CALL_EX(addr, seg, typ, ...) (__call_banked_addr=(addr),__call_banked_bank=(seg),((typ)(&__call__banked))(__VA_ARGS__))
-typedef uint8_t (*SCRIPT_UPDATE_FN)(void * THIS, uint8_t start, uint16_t * stack_frame) OLDCALL BANKED;
+typedef uint8_t (*SCRIPT_UPDATE_FN)(void * THIS, uint8_t start, uint16_t * stack_frame) OLDCALL BANKED REENTRANT;
 
 #define VM_REF_TO_PTR(idx) (void *)(((idx) < 0) ? THIS->stack_ptr + (idx) : script_memory + (idx))
 
@@ -67,11 +74,17 @@ typedef struct SCRIPT_CTX {
 #define INSTRUCTION_SIZE 1
 
 // maximum number of concurrent running VM threads
+#ifndef VM_MAX_CONTEXTS
 #define VM_MAX_CONTEXTS 16
+#endif
 // stack size of each VM thread
+#ifndef VM_CONTEXT_STACK_SIZE
 #define VM_CONTEXT_STACK_SIZE 64
+#endif
 // number of shared variables
+#ifndef VM_HEAP_SIZE
 #define VM_HEAP_SIZE 1024
+#endif
 // quant size
 #define INSTRUCTIONS_PER_QUANT 0x10
 // termination flag

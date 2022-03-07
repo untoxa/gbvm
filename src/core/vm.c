@@ -11,9 +11,13 @@
 
 BANKREF(VM_MAIN)
 
-#ifdef __SDCC
+#if defined(__SDCC) && !defined(__SDCC_mos6502)
 // define addressmod for HOME
 void ___vm_dummy_fn(void) NONBANKED PRESERVES_REGS(a, b, c, d, e, h, l) {}
+__addressmod ___vm_dummy_fn const HOME;
+#elif defined(__SDCC_mos6502)
+// define addressmod for HOME
+void ___vm_dummy_fn(void) NONBANKED {}
 __addressmod ___vm_dummy_fn const HOME;
 #else
 #define HOME
@@ -96,12 +100,12 @@ const void * vm_exception_params_offset;
 // then you may declare it without params at all bacause caller clears stack - that is safe
 
 // call absolute instruction
-void vm_call(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED {
+void vm_call(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED REENTRANT {
     *(THIS->stack_ptr++) = (uint16_t)THIS->PC;
     THIS->PC = pc;
 }
 // return instruction returns to a point where call was invoked
-void vm_ret(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED {
+void vm_ret(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED REENTRANT {
     // pop VM PC from VM stack
     THIS->stack_ptr--;
     THIS->PC = (const uint8_t *)*(THIS->stack_ptr);
@@ -109,14 +113,14 @@ void vm_ret(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED {
 }
 
 // far call to another bank
-void vm_call_far(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * pc) OLDCALL BANKED {
+void vm_call_far(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * pc) OLDCALL BANKED REENTRANT {
     *(THIS->stack_ptr++) = (uint16_t)THIS->PC;
     *(THIS->stack_ptr++) = THIS->bank;
     THIS->PC = pc;
     THIS->bank = bank;
 }
 // ret from far call
-void vm_ret_far(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED {
+void vm_ret_far(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED REENTRANT {
     THIS->stack_ptr--;
     THIS->bank = (uint8_t)(*(THIS->stack_ptr));
     THIS->stack_ptr--;
@@ -127,18 +131,18 @@ void vm_ret_far(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED {
 // you can also invent calling convention and pass parameters to scripts on VM stack,
 // make a library of scripts and so on
 // pushes word onto VM stack
-void vm_push(SCRIPT_CTX * THIS, uint16_t value) OLDCALL BANKED {
+void vm_push(SCRIPT_CTX * THIS, uint16_t value) OLDCALL BANKED REENTRANT {
     *(THIS->stack_ptr++) = value;
 }
 
 // cleans up to n words from stack and returns last one
- uint16_t vm_pop(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED {
+ uint16_t vm_pop(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED REENTRANT {
     if (n) THIS->stack_ptr -= n;
     return *(THIS->stack_ptr);
 }
 
 // loop absolute, callee cleanups stack
-void vm_loop(SCRIPT_CTX * THIS, int16_t idx, uint8_t * pc, uint8_t n) OLDCALL BANKED {
+void vm_loop(SCRIPT_CTX * THIS, int16_t idx, uint8_t * pc, uint8_t n) OLDCALL BANKED REENTRANT {
     uint16_t * counter;
     if (idx < 0) counter = THIS->stack_ptr + idx; else counter = script_memory + idx;
     if (*counter) {
@@ -174,25 +178,219 @@ void vm_switch(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idx, U
 }
 
 // jump absolute
-void vm_jump(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED {
+void vm_jump(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED REENTRANT {
     THIS->PC = pc;
 }
 
 // returns systime
-void vm_systime(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED {
+void vm_systime(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED REENTRANT {
     uint16_t * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
     *A = sys_time;
 }
 
-uint8_t wait_frames(void * THIS, uint8_t start, uint16_t * stack_frame) OLDCALL BANKED {
+uint8_t wait_frames(void * THIS, uint8_t start, uint16_t * stack_frame) OLDCALL BANKED REENTRANT {
     // we allocate one local variable (just write ahead of VM stack pointer, we have no interrupts, our local variables won't get spoiled)
     if (start) stack_frame[1] = sys_time;
     // check wait condition
     return ((sys_time - stack_frame[1]) < stack_frame[0]) ? ((SCRIPT_CTX *)THIS)->waitable = 1, 0 : 1;
 }
+
 // calls C handler until it returns true; callee cleanups stack
-void vm_invoke(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * fn, uint8_t nparams, int16_t idx) OLDCALL BANKED {
+void vm_invoke(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * fn, uint8_t nparams, int16_t idx) OLDCALL BANKED REENTRANT {
+#ifdef __SDCC_mos6502
+THIS; bank; fn; nparams; idx; // suppress warnings
+// Use inline asm for mos6502 to work around SDCC mos6502 bug with cast to typedef:ed function
+__asm
+    .area OSEG (PAG, OVR)
+    ; THIS/CTX (passed with registers)
+    .THIS:              .ds 2
+    ; parameters originally on stack
+    .bank:              .ds 1
+    .fn:                .ds 2
+    .nparams:           .ds 1
+    .idx:               .ds 2
+    ; locals
+    .stack_frame::      .ds 2
+    .start:             .ds 1
+
+    .area _CODE_2
+
+    sta *.THIS
+    stx *.THIS+1
+    
+    ; Transfer stack parameters to OVR variables
+    ; vm_invoke(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * fn, uint8_t nparams, int16_t idx)
+    tsx
+    lda 0x10b,x
+    sta *.idx+1
+    lda 0x10a,x
+    sta *.idx
+    lda 0x109,x
+    sta *.nparams
+    lda 0x108,x
+    sta *.fn+1
+    lda 0x107,x
+    sta *.fn
+    lda 0x106,x
+    sta *.bank
+    
+    ; uint8_t start = ((THIS->update_fn != fn) || (THIS->update_fn_bank != bank)) ? THIS->update_fn = fn, THIS->update_fn_bank = bank, 1 : 0;
+    jsr .vm_invoke_update_fn
+    sta *.start
+    
+    jsr .vm_invoke_get_stack_frame
+    
+    ; FAR_CALL_EX(fn, bank, uint8_t (*)(void*, uint8_t, uint16_t*), THIS, start, stack_frame))
+
+
+    ; Push parameters on stack
+    lda *.stack_frame+1
+    pha
+    lda *.stack_frame
+    pha
+    lda *.start
+    pha
+
+    ; call banked function
+    jsr .vm_invoke___call__banked
+
+    ; Clean stack
+    pla
+    pla
+    pla
+
+    bcc 2$
+    ;
+    ; Wait condition is met - reset state
+    ;
+    ; if (nparams) THIS->stack_ptr -= nparams;
+    asl *.nparams
+    ldy #8
+    lda [*.THIS],y
+    sec
+    sbc *.nparams
+    sta [*.THIS],y
+    iny
+    lda [*.THIS],y
+    sbc #0
+    sta [*.THIS],y
+    ; THIS->update_fn = 0, THIS->update_fn_bank = 0;
+    ldy #5
+    lda #0
+    sta [*.THIS],y
+    iny
+    sta [*.THIS],y
+    iny
+    sta [*.THIS],y
+    rts
+2$:
+    ; Call handler again on next vm_invoke - wait condition is not met
+    ; THIS->PC -= (INSTRUCTION_SIZE + sizeof(bank) + sizeof(fn) + sizeof(nparams) + sizeof(idx));
+    ldy #0
+    lda [*.THIS],y
+    sec
+    sbc #(1 + 1 + 2 + 1 + 2)
+    sta [*.THIS],y
+    iny
+    lda [*.THIS],y
+    sbc #0
+    sta [*.THIS],y
+    rts
+
+.vm_invoke_update_fn:
+    ; THIS->update_fn != fn
+    ldy #5
+    lda [*.THIS],y
+    iny
+    cmp *.fn
+    bne 1$
+    lda [*.THIS],y
+    iny
+    cmp *.fn+1
+    bne 1$
+    ; THIS->update_fn_bank != bank
+    lda [*.THIS],y
+    cmp *.bank
+    bne 1$
+    lda #0
+    rts
+1$:
+    ; THIS->update_fn = fn, THIS->update_fn_bank = bank
+    ldy #5
+    lda *.fn
+    sta [*.THIS],y
+    iny
+    lda *.fn+1
+    sta [*.THIS],y
+    iny
+    lda *.bank
+    sta [*.THIS],y
+    lda #1
+    rts
+
+.vm_invoke_get_stack_frame:
+    lda *.idx
+    bmi .stack_memory_idx
+    ; stack_frame = script_memory + 2*idx
+    asl
+    rol *.stack_frame+1
+    clc
+    adc #<_script_memory
+    sta *.stack_frame
+    lda *.stack_frame+1
+    adc #>_script_memory
+    sta *.stack_frame+1
+    rts
+.stack_memory_idx:
+    asl
+    sta *.idx
+    rol *.idx+1
+    ldy #8
+    lda [*.THIS],y
+    clc
+    adc *.idx
+    sta *.stack_frame
+    iny
+    lda [*.THIS],y
+    adc *.idx+1
+    sta *.stack_frame+1
+    rts
+
+
+    .area _HOME
+
+;
+; Optimized variant of __call_banked
+;
+.vm_invoke___call__banked::
+    ; Save old bank on stack
+    lda *__current_bank
+    pha
+    ; Set new bank
+    lda *.bank
+    sta *__current_bank
+    jsr __switch_prg0
+    ; First 16-bit parameter uses registers instead of stack
+    lda *.THIS
+    ldx *.THIS+1
+    ; Perform banked call
+    jsr 1$
+    ; Returned from banked call
+    ; Put binary return value in carry flag
+    lsr
+    ; pull old bank and switch back
+    pla
+    sta *__current_bank
+    jsr __switch_prg0
+    rts
+1$:
+    jmp [*.fn]
+
+    ; Restore default bank setting of 2 that was set by pragma
+    .area _CODE_2
+__endasm;
+#else
     uint16_t * stack_frame = (idx < 0) ? THIS->stack_ptr + idx : script_memory + idx;
     // update function pointer
     uint8_t start = ((THIS->update_fn != fn) || (THIS->update_fn_bank != bank)) ? THIS->update_fn = fn, THIS->update_fn_bank = bank, 1 : 0;
@@ -204,10 +402,11 @@ void vm_invoke(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * fn, uint8_t nparams, i
     }
     // call handler again, wait condition is not met
     THIS->PC -= (INSTRUCTION_SIZE + sizeof(bank) + sizeof(fn) + sizeof(nparams) + sizeof(idx));
+#endif
 }
 
 // runs script in a new thread
-void vm_beginthread(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, uint8_t bank, uint8_t * pc, int16_t idx, uint8_t nargs) OLDCALL NONBANKED {
+void vm_beginthread(DUMMY_SIGNATURE, uint8_t bank, uint8_t * pc, int16_t idx, uint8_t nargs) OLDCALL NONBANKED REENTRANT {
     dummy0; dummy1;
     uint16_t * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
@@ -227,13 +426,13 @@ void vm_beginthread(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, uint8_t
     }
 }
 //
-void vm_join(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED {
+void vm_join(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED REENTRANT {
     uint16_t * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
     if (!(*A >> 8)) THIS->PC -= (INSTRUCTION_SIZE + sizeof(idx)), THIS->waitable = 1;
 }
 //
-void vm_terminate(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED {
+void vm_terminate(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED REENTRANT {
     uint16_t * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
     script_terminate((uint8_t)(*A));
@@ -242,7 +441,7 @@ void vm_terminate(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED {
 // if condition; compares two arguments on VM stack
 // idxA, idxB point to arguments to compare
 // negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
-void vm_if(SCRIPT_CTX * THIS, uint8_t condition, int16_t idxA, int16_t idxB, uint8_t * pc, uint8_t n) OLDCALL BANKED {
+void vm_if(SCRIPT_CTX * THIS, uint8_t condition, int16_t idxA, int16_t idxB, uint8_t * pc, uint8_t n) OLDCALL BANKED REENTRANT {
     int16_t A, B;
     if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = script_memory[idxA];
     if (idxB < 0) B = *(THIS->stack_ptr + idxB); else B = script_memory[idxB];
@@ -261,7 +460,7 @@ void vm_if(SCRIPT_CTX * THIS, uint8_t condition, int16_t idxA, int16_t idxB, uin
 // if condition; compares argument on VM stack with an immediate value
 // idxA point to arguments to compare, B is a value
 // negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
-void vm_if_const(SCRIPT_CTX * THIS, uint8_t condition, int16_t idxA, int16_t B, uint8_t * pc, uint8_t n) OLDCALL BANKED {
+void vm_if_const(SCRIPT_CTX * THIS, uint8_t condition, int16_t idxA, int16_t B, uint8_t * pc, uint8_t n) OLDCALL BANKED REENTRANT {
     int16_t A;
     if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = script_memory[idxA];
     uint8_t res = 0;
@@ -278,7 +477,7 @@ void vm_if_const(SCRIPT_CTX * THIS, uint8_t condition, int16_t idxA, int16_t B, 
 }
 // pushes value from VM stack onto VM stack
 // if idx >= 0 then idx is absolute, else idx is relative to VM stack pointer
-void vm_pushvalue(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED {
+void vm_pushvalue(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED REENTRANT {
     if (idx < 0) *(THIS->stack_ptr) = *(THIS->stack_ptr + idx); else *(THIS->stack_ptr) = script_memory[idx];
     THIS->stack_ptr++;
 }
@@ -295,24 +494,24 @@ void vm_push_reference(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED {
     THIS->stack_ptr++;
 }
 // manipulates VM stack pointer
-void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) OLDCALL BANKED {
+void vm_reserve(SCRIPT_CTX * THIS, INT8 ofs) OLDCALL BANKED REENTRANT {
     THIS->stack_ptr += ofs;
 }
 // sets value on stack indexed by idxA to value on stack indexed by idxB
-void vm_set(SCRIPT_CTX * THIS, int16_t idxA, int16_t idxB) OLDCALL BANKED {
+void vm_set(SCRIPT_CTX * THIS, int16_t idxA, int16_t idxB) OLDCALL BANKED REENTRANT {
     int16_t * A, * B;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     if (idxB < 0) B = THIS->stack_ptr + idxB; else B = script_memory + idxB;
     *A = *B;
 }
 // sets value on stack indexed by idx to value
-void vm_set_const(SCRIPT_CTX * THIS, int16_t idx, uint16_t value) OLDCALL BANKED {
+void vm_set_const(SCRIPT_CTX * THIS, int16_t idx, uint16_t value) OLDCALL BANKED REENTRANT {
     uint16_t * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
     *A = value;
 }
 // sets value on stack indexed by idxA to value on stack indexed by idxB
-void vm_get_tlocal(SCRIPT_CTX * THIS, int16_t idxA, int16_t idxB) OLDCALL BANKED {
+void vm_get_tlocal(SCRIPT_CTX * THIS, int16_t idxA, int16_t idxB) OLDCALL BANKED REENTRANT {
     int16_t * A, * B;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     if (idxB < 0) B = THIS->stack_ptr + idxB; else B = THIS->base_addr + idxB;
@@ -320,7 +519,7 @@ void vm_get_tlocal(SCRIPT_CTX * THIS, int16_t idxA, int16_t idxB) OLDCALL BANKED
 }
 // rpn calculator; must be NONBANKED because we access VM bytecode
 // dummy parameters are needed to make nonbanked function to be compatible with banked call
-void vm_rpn(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS) OLDCALL NONBANKED {
+void vm_rpn(DUMMY_SIGNATURE) OLDCALL NONBANKED REENTRANT {
     dummy0; dummy1; // suppress warnings
     int16_t * A, * B, * ARGS;
     int16_t idx;
@@ -408,7 +607,7 @@ void vm_rpn(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS) OLDCALL NONBANK
 }
 
 // prints debug string into the text buffer then outputs to screen
-void vm_debug(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, uint8_t nargs) OLDCALL NONBANKED {
+void vm_debug(DUMMY_SIGNATURE, uint8_t nargs) OLDCALL NONBANKED REENTRANT {
     dummy0; dummy1; // suppress warnings
 
     static unsigned char display_text[80];
@@ -449,30 +648,30 @@ void vm_debug(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, uint8_t nargs
 }
 
 // puts context into a waitable state
-void vm_idle(SCRIPT_CTX * THIS) OLDCALL BANKED {
+void vm_idle(SCRIPT_CTX * THIS) OLDCALL BANKED REENTRANT {
     THIS->waitable = 1;
 }
 
 // gets unsigned int8 from RAM by address
-void vm_get_uint8(SCRIPT_CTX * THIS, int16_t idxA, uint8_t * addr) OLDCALL BANKED {
+void vm_get_uint8(SCRIPT_CTX * THIS, int16_t idxA, uint8_t * addr) OLDCALL BANKED REENTRANT {
     int16_t * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     *A = *addr;
 }
 // gets int8 from RAM by address
-void vm_get_int8(SCRIPT_CTX * THIS, int16_t idxA, int8_t * addr) OLDCALL BANKED {
+void vm_get_int8(SCRIPT_CTX * THIS, int16_t idxA, int8_t * addr) OLDCALL BANKED REENTRANT {
     int16_t * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     *A = *addr;
 }
 // gets int16 from RAM by address
-void vm_get_int16(SCRIPT_CTX * THIS, int16_t idxA, int16_t * addr) OLDCALL BANKED {
+void vm_get_int16(SCRIPT_CTX * THIS, int16_t idxA, int16_t * addr) OLDCALL BANKED REENTRANT {
     int16_t * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     *A = *addr;
 }
 // gets int8 or int16 by far address
-void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA, UBYTE size, UBYTE bank, UBYTE * addr) OLDCALL NONBANKED {
+void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA, UBYTE size, UBYTE bank, UBYTE * addr) OLDCALL NONBANKED REENTRANT {
     dummy0; dummy1;
     UINT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
@@ -482,46 +681,46 @@ void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA,
     SWITCH_ROM(_save);
 }
 // sets unsigned int8 in RAM by address
-void vm_set_uint8(SCRIPT_CTX * THIS, UINT8 * addr, INT16 idxA) OLDCALL BANKED {
+void vm_set_uint8(SCRIPT_CTX * THIS, UINT8 * addr, INT16 idxA) OLDCALL BANKED REENTRANT {
     INT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     *addr = *A;
 }
 // sets int8 in RAM by address
-void vm_set_int8(SCRIPT_CTX * THIS, INT8 * addr, INT16 idxA) OLDCALL BANKED {
+void vm_set_int8(SCRIPT_CTX * THIS, INT8 * addr, INT16 idxA) OLDCALL BANKED REENTRANT {
     INT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     *addr = *A;
 }
 // sets int16 in RAM by address
-void vm_set_int16(SCRIPT_CTX * THIS, INT16 * addr, INT16 idxA) OLDCALL BANKED {
+void vm_set_int16(SCRIPT_CTX * THIS, INT16 * addr, INT16 idxA) OLDCALL BANKED REENTRANT {
     INT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     *addr = *A;
 }
 // sets unsigned int8 in RAM by address
-void vm_set_const_int8(SCRIPT_CTX * THIS, UINT8 * addr, UINT8 v) OLDCALL BANKED {
+void vm_set_const_int8(SCRIPT_CTX * THIS, UINT8 * addr, UINT8 v) OLDCALL BANKED REENTRANT {
     THIS;
     *addr = v;
 }
 // sets int16 in RAM by address
-void vm_set_const_int16(SCRIPT_CTX * THIS, INT16 * addr, INT16 v) OLDCALL BANKED {
+void vm_set_const_int16(SCRIPT_CTX * THIS, INT16 * addr, INT16 v) OLDCALL BANKED REENTRANT {
     THIS;
     *addr = v;
 }
 // sets lock flag for current context
-void vm_lock(SCRIPT_CTX * THIS) OLDCALL BANKED {
+void vm_lock(SCRIPT_CTX * THIS) OLDCALL BANKED REENTRANT {
     THIS->lock_count++;
     vm_lock_state++;
 }
 // resets lock flag for current context
-void vm_unlock(SCRIPT_CTX * THIS) OLDCALL BANKED {
+void vm_unlock(SCRIPT_CTX * THIS) OLDCALL BANKED REENTRANT {
     if (THIS->lock_count == 0) return;
     THIS->lock_count--;
     vm_lock_state--;
 }
 // raises VM exception
-void vm_raise(SCRIPT_CTX * THIS, UBYTE code, UBYTE size) OLDCALL BANKED {
+void vm_raise(SCRIPT_CTX * THIS, UBYTE code, UBYTE size) OLDCALL BANKED REENTRANT {
     vm_exception_code = code;
     vm_exception_params_length = size;
     vm_exception_params_bank = THIS->bank;
@@ -529,7 +728,7 @@ void vm_raise(SCRIPT_CTX * THIS, UBYTE code, UBYTE size) OLDCALL BANKED {
     THIS->PC += size;
 }
 // sets variable indirect
-void vm_set_indirect(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL BANKED {
+void vm_set_indirect(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL BANKED REENTRANT {
     INT16 * A, * B;
     // get target address indirect
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
@@ -540,7 +739,7 @@ void vm_set_indirect(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL BANKED {
     *A = *B;
 }
 // sets variable indirect
-void vm_get_indirect(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL BANKED {
+void vm_get_indirect(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL BANKED REENTRANT {
     INT16 * A, * B;
     // get target address
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
@@ -551,7 +750,7 @@ void vm_get_indirect(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL BANKED {
     *A = *B;
 }
 // call native function by far pointer;
-void vm_call_native(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UINT8 bank, const void * ptr) OLDCALL NONBANKED NAKED {
+void vm_call_native(DUMMY_SIGNATURE, UINT8 bank, const void * ptr) OLDCALL NONBANKED NAKED REENTRANT {
     dummy0; dummy1; THIS; bank; ptr; // suppress warnings
 #if defined(__SDCC)
 #if defined(NINTENDO)
@@ -586,6 +785,31 @@ __asm
         call ___sdcc_bcall_ehl
         pop hl
         ret
+__endasm;
+#elif defined(NINTENDO_NES)
+__asm
+    ; NOTE: OSEG area exactly matches that of vm_invoke, to allow reusing
+    ; .vm_invoke___call__banked which depends on this layout.
+    .area OSEG (PAG, OVR)
+    .see_vm_invoke:     .ds 5
+
+    .area _HOME
+
+    sta *.THIS
+    stx *.THIS+1
+    
+    ; Transfer stack parameters to OVR variables
+    ; vm_call_native(DUMMY_SIGNATURE, UINT8 bank, const void * ptr)
+    tsx
+    lda 0x108,x
+    sta *.fn+1
+    lda 0x107,x
+    sta *.fn
+    lda 0x106,x
+    sta *.bank
+    ; call banked function (reuses implementation in vm_invoke)
+    jmp .vm_invoke___call__banked
+
 __endasm;
 #endif
 #endif
@@ -806,6 +1030,130 @@ __asm
         ld l, e                 ; __z88dk_fastcall function must return result in l
 
         ret
+__endasm;
+#elif defined(NINTENDO_NES)
+__asm
+    .area OSEG (PAG, OVR)
+    .CTX:               .ds 2
+    .PC:                .ds 2
+    .CMD_PTR:           .ds 2
+    .CMD_BANK:          .ds 1
+    .args_len:          .ds 1
+    .TMP:               .ds 1
+    
+    .area _ZP (PAG)
+    .S_old:             .ds 1
+
+    .area _HOME
+
+    sta *.CTX
+    stx *.CTX+1
+
+    ; Save old bank on stack
+    lda *__current_bank
+    pha
+    ; Save stack pointer (VM parameters may change it)
+    tsx
+    stx *.S_old
+    ; Load PC
+    ldy #0
+    lda [*.CTX],y
+    iny
+    sta *.PC
+    lda [*.CTX],y
+    iny
+    sta *.PC+1
+    
+    ; Load and switch to bytecode bank
+    lda [*.CTX],y
+    sta *__current_bank
+    jsr __switch_prg0
+    
+    ; Read opcode
+    ldy #0
+    lda [*.PC],y
+    bne 1$
+    ; Set return code 0 (terminated)
+    clc
+    jmp _VM_STEP_end
+1$:
+    iny
+    ; 4*(opcode-1)
+    sec
+    sbc #1
+	asl
+	asl
+    tax
+    ; Get function pointer, function bank and argument length
+    lda _script_cmds,x
+    sta *.CMD_PTR
+    lda _script_cmds+1,x
+    sta *.CMD_PTR+1
+	lda _script_cmds+2,x
+	sta *.CMD_BANK
+    lda _script_cmds+3,x
+    sta *.args_len
+    beq 4$
+    lsr
+    tax
+    bcc 2$
+    ; Read 8-bit byte from bytecode bank and push on stack
+    lda [*.PC],y
+    iny
+    pha
+2$:
+    ; Read 16-bit words from bytecode bank and push on stack
+    cpx #0
+    beq 4$
+3$:
+    lda [*.PC],y
+    iny
+    pha
+    lda [*.PC],y
+    iny
+    pha
+    dex
+    bne 3$
+4$:
+
+    ; PC = PC + sizeof(instruction) + args_len
+    ldy #0
+    lda *.PC
+    sec ; instruction size is always 1 byte
+    adc *.args_len
+    sta [*.CTX],y
+    lda *.PC+1
+    adc #0
+    iny
+    sta [*.CTX],y
+    
+    ; Switch to VM function bank
+    lda *.CMD_BANK
+    jsr __switch_prg0
+
+    ; Call VM function
+    pha
+    pha
+    pha
+    jsr .call_vm_function
+    sec ; Set return code 1 (not terminated)
+_VM_STEP_end: 
+    ; Restore stack pointer (VM parameters may have changed it)
+    ldx *.S_old
+    txs
+    ; Restore old bank
+    pla
+    jsr __switch_prg0
+    ; Move return code (single bit) from C to A
+    lda #0
+    rol
+    rts
+
+.call_vm_function:
+    ; First 16-bit parameter (SCRIPT_CTX*) uses registers instead of stack
+    lda *.CTX
+    ldx *.CTX+1
+    jmp [*.CMD_PTR]
 __endasm;
 #endif
 #endif
