@@ -94,14 +94,11 @@ extern const void * vm_exception_params_offset;
 // script core functions
 void vm_push(SCRIPT_CTX * THIS, uint16_t value) OLDCALL BANKED;
 uint16_t vm_pop(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED;
-void vm_call_rel(SCRIPT_CTX * THIS, int8_t ofs) OLDCALL BANKED;
 void vm_call(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED;
 void vm_ret(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED;
 void vm_call_far(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * pc) OLDCALL BANKED;
 void vm_ret_far(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED;
-void vm_loop_rel(SCRIPT_CTX * THIS, int16_t idx, int8_t ofs, uint8_t n) OLDCALL BANKED;
 void vm_loop(SCRIPT_CTX * THIS, int16_t idx, uint8_t * pc, uint8_t n) OLDCALL BANKED;
-void vm_jump_rel(SCRIPT_CTX * THIS, int8_t ofs) OLDCALL BANKED;
 void vm_jump(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED;
 void vm_systime(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED;
 void vm_invoke(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * fn, uint8_t nparams, int16_t idx) OLDCALL BANKED;

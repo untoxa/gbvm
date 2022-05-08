@@ -42,8 +42,8 @@ _BYTECODE::
          .asciz "!ERROR!"
         VM_STOP
 1$:
-        VM_CALL         2$              ; 2$ is too far for relative call, use near call
-        VM_LOOP_REL     .ARG0, 1$, 1    ; loop to 1$; use *(SP-1) as counter; cleanup counter from stack after
+        VM_CALL         2$              ; near call
+        VM_LOOP         .ARG0, 1$, 1    ; loop to 1$; use *(SP-1) as counter; cleanup counter from stack after
 
         VM_PUSH         0               ; placeholder for thread handle
         VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1, .ARG0, 1     ; start a thread, pass copy of .ARG0 as a parameter into thread locals
@@ -59,12 +59,12 @@ _BYTECODE::
         VM_PUSHVALUE    .ARG1           ; test pushvalue, value == 3 must be pushed
 5$:
         VM_IDLE                         ; execution may be delayed here
-        VM_LOOP_REL     .ARG0, 5$, 1    ; loop to 5$; cleanup counter from stack after
+        VM_LOOP         .ARG0, 5$, 1    ; loop to 5$; cleanup counter from stack after
 
         VM_IF .EQ       .ARG0, .ARG1, 3$, 2     ; if (*(SP-1) == *(SP-2)) goto 3$; also cleanup 2 arguments from stack
         VM_DEBUG        0
         .asciz "err: ARG0 != ARG1"
-        VM_JUMP_REL     4$
+        VM_JUMP         4$
 3$:
         VM_DEBUG        0
         .asciz "ok: ARG0 == ARG1"
@@ -119,15 +119,15 @@ _THREAD1::
                                                 ;     default: 
         VM_DEBUG        0
         .asciz "ID not in [2,4,7]"
-        VM_JUMP_REL     4$
+        VM_JUMP         4$
 1$:     
         VM_DEBUG        0
         .asciz "case ID == 2"
-        VM_JUMP_REL     4$
+        VM_JUMP         4$
 2$:
         VM_DEBUG        0
         .asciz "case ID == 4"
-        VM_JUMP_REL     4$
+        VM_JUMP         4$
 3$:
         VM_RPN                          ; complex condition test (note: full boolean evaluation)
             .R_INT8     1

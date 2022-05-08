@@ -17,32 +17,32 @@ __addressmod ___vm_dummy_fn const HOME;
 // here we define all VM instructions: their handlers and parameter lengths in bytes
 // this array must be nonbanked as well as STEP_VM()
 HOME const SCRIPT_CMD script_cmds[] = {
-    {&vm_push,         2}, // 0x01
-    {&vm_pop,          1}, // 0x02
-    {&vm_call_rel,     1}, // 0x03
-    {&vm_call,         2}, // 0x04
-    {&vm_ret,          1}, // 0x05
-    {&vm_loop_rel,     4}, // 0x06
-    {&vm_loop,         5}, // 0x07
-    {&vm_jump_rel,     1}, // 0x08
-    {&vm_jump,         2}, // 0x09
-    {&vm_call_far,     3}, // 0x0A
-    {&vm_ret_far,      1}, // 0x0B
-    {&vm_systime,      2}, // 0x0C
-    {&vm_invoke,       6}, // 0x0D
-    {&vm_beginthread,  6}, // 0x0E
-    {&vm_if,           8}, // 0x0F
-    {&vm_debug,        1}, // 0x10
-    {&vm_pushvalue,    2}, // 0x11
-    {&vm_reserve,      1}, // 0x12
-    {&vm_set,          4}, // 0x13
-    {&vm_set_const,    4}, // 0x14
-    {&vm_rpn,          0}, // 0x15
-    {&vm_join,         2}, // 0x16
-    {&vm_terminate,    2}, // 0x17
-    {&vm_idle,         0}, // 0x18
+    {vm_push,          2}, // 0x01
+    {vm_pop,           1}, // 0x02
+    {NULL,             0}, // 0x03
+    {vm_call,          2}, // 0x04
+    {vm_ret,           1}, // 0x05
+    {NULL,             0}, // 0x06
+    {vm_loop,          5}, // 0x07
+    {NULL,             0}, // 0x08
+    {vm_jump,          2}, // 0x09
+    {vm_call_far,      3}, // 0x0A
+    {vm_ret_far,       1}, // 0x0B
+    {vm_systime,       2}, // 0x0C
+    {vm_invoke,        6}, // 0x0D
+    {vm_beginthread,   6}, // 0x0E
+    {vm_if,            8}, // 0x0F
+    {vm_debug,         1}, // 0x10
+    {vm_pushvalue,     2}, // 0x11
+    {vm_reserve,       1}, // 0x12
+    {vm_set,           4}, // 0x13
+    {vm_set_const,     4}, // 0x14
+    {vm_rpn,           0}, // 0x15
+    {vm_join,          2}, // 0x16
+    {vm_terminate,     2}, // 0x17
+    {vm_idle,          0}, // 0x18
     {vm_get_tlocal,    4}, // 0x19
-    {&vm_if_const,     8}, // 0x1A
+    {vm_if_const,      8}, // 0x1A
     {vm_get_uint8,     4}, // 0x1B
     {vm_get_int8,      4}, // 0x1C
     {vm_get_int16,     4}, // 0x1D
@@ -71,15 +71,6 @@ const void * vm_exception_params_offset;
 // if VM function has no parameters and does not manipulate context
 // then you may declare it without params at all bacause caller clears stack - that is safe
 
-// this is a call instruction, it pushes return address onto VM stack
-void vm_call_rel(SCRIPT_CTX * THIS, int8_t ofs) OLDCALL BANKED {
-    // push current VM PC onto VM stack
-    *(THIS->stack_ptr++) = (uint16_t)THIS->PC;
-    // modify VM PC (goto PC + ofs)
-    // pc is a pointer, you may point to any other script wherever you want
-    // you may also pass absolute pointer instead of ofs, if you want
-    THIS->PC += ofs;    
-}
 // call absolute instruction
 void vm_call(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED {
     *(THIS->stack_ptr++) = (uint16_t)THIS->PC;
@@ -121,16 +112,6 @@ void vm_push(SCRIPT_CTX * THIS, uint16_t value) OLDCALL BANKED {
     return *(THIS->stack_ptr);
 }
 
-// do..while loop, callee cleanups stack
-void vm_loop_rel(SCRIPT_CTX * THIS, int16_t idx, int8_t ofs, uint8_t n) OLDCALL BANKED {
-    uint16_t * counter;
-    if (idx < 0) counter = THIS->stack_ptr + idx; else counter = script_memory + idx;
-    if (*counter) {
-        THIS->PC += ofs, (*counter)--; 
-    } else {
-        if (n) THIS->stack_ptr -= n;
-    }
-}
 // loop absolute, callee cleanups stack
 void vm_loop(SCRIPT_CTX * THIS, int16_t idx, uint8_t * pc, uint8_t n) OLDCALL BANKED {
     uint16_t * counter;
@@ -142,10 +123,6 @@ void vm_loop(SCRIPT_CTX * THIS, int16_t idx, uint8_t * pc, uint8_t n) OLDCALL BA
     }
 }
 
-// jump relative
-void vm_jump_rel(SCRIPT_CTX * THIS, int8_t ofs) OLDCALL BANKED {
-    THIS->PC += ofs;    
-}
 // jump absolute
 void vm_jump(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED {
     THIS->PC = pc;    
