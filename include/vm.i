@@ -1,5 +1,5 @@
 ; bytecode
-; calling convention 
+; calling convention
 ;      args: big-endian
 ;      order: left-to-right (leftmost argument pushed first)
 
@@ -12,11 +12,38 @@
 .ARG5 = -6
 .ARG6 = -7
 .ARG7 = -8
+.ARG8 = -9
+.ARG9 = -10
+.ARG10 = -11
+.ARG11 = -12
+.ARG12 = -13
+.ARG13 = -14
+.ARG14 = -15
+.ARG15 = -16
+.ARG16 = -17
+
+.PARAM0 = .ARG2
+.PARAM1 = .ARG3
+.PARAM2 = .ARG4
+.PARAM3 = .ARG5
+.PARAM4 = .ARG6
+.PARAM5 = .ARG7
+.PARAM6 = .ARG8
+.PARAM7 = .ARG9
+.PARAM8 = .ARG10
+.PARAM9 = .ARG11
+.PARAM10 = .ARG12
+.PARAM11 = .ARG13
+.PARAM12 = .ARG14
+.PARAM13 = .ARG15
+.PARAM14 = .ARG16
+.PARAM15 = -18
+.PARAM16 = -19
 
 ; stops execution of context
 OP_VM_STOP         = 0x00
 .macro VM_STOP
-        .db OP_VM_STOP 
+        .db OP_VM_STOP
 .endm
 
 ; push immediate value onto VM stack
@@ -40,12 +67,12 @@ OP_VM_CALL         = 0x04
 ; return from near call
 OP_VM_RET          = 0x05
 .macro VM_RET
-        .db OP_VM_RET, 0 
+        .db OP_VM_RET, 0
 .endm
 
 ; return from near call and clear n arguments on stack
 .macro VM_RET_N ARG0
-        .db OP_VM_RET, #<ARG0 
+        .db OP_VM_RET, #<ARG0
 .endm
 
 ; loop by near address, counter is on stack, counter is removed on exit
@@ -69,12 +96,12 @@ OP_VM_CALL_FAR     = 0x0A
 ; rerurn from far call and clear n arguments on stack
 OP_VM_RET_FAR      = 0x0B
 .macro VM_RET_FAR
-        .db OP_VM_RET_FAR, 0 
+        .db OP_VM_RET_FAR, 0
 .endm
 
 ; rerurn from far call and clear n arguments on stack
 .macro VM_RET_FAR_N ARG0
-        .db OP_VM_RET_FAR, #<ARG0 
+        .db OP_VM_RET_FAR, #<ARG0
 .endm
 
 ; returns game boy system time on VM stack
@@ -105,6 +132,7 @@ OP_VM_IF           = 0x0F
 .NE                = 6
 .AND               = 7
 .OR                = 8
+.NOT               = 9
 .macro VM_IF CONDITION, IDXA, IDXB, LABEL, N
         .db OP_VM_IF, #<N, #>LABEL, #<LABEL, #>IDXB, #<IDXB, #>IDXA, #<IDXA, #<CONDITION
 .endm
@@ -127,7 +155,7 @@ OP_VM_RESERVE    = 0x12
         .db OP_VM_RESERVE, #<ARG0
 .endm
 
-; assignes a value on VM stack or a global to a value on VM stack ar a global 
+; assignes a value on VM stack or a global to a value on VM stack ar a global
 OP_VM_SET        = 0x13
 .macro VM_SET IDXA, IDXB
         .db OP_VM_SET, #>IDXB, #<IDXB, #>IDXA, #<IDXA
@@ -141,15 +169,28 @@ OP_VM_SET_CONST  = 0x14
 
 ; rpn calculator, returns result on VM stack
 OP_VM_RPN        = 0x15
-.ADD             = '+'
-.SUB             = '-'
-.MUL             = '*'
-.DIV             = '/'
-.MOD             = '%'
-.B_AND           = '&'
-.B_OR            = '|'
-.B_XOR           = '^'
-.ABS             = '@' 
+.ADD               = '+'
+.SUB               = '-'
+.MUL               = '*'
+.DIV               = '/'
+.MOD               = '%'
+.B_AND             = '&'
+.B_OR              = '|'
+.B_XOR             = '^'
+.B_NOT             = '~'
+.ABS               = '@'
+.MIN               = 'm'
+.MAX               = 'M'
+;.EQ                = 1
+;.LT                = 2
+;.LTE               = 3
+;.GT                = 4
+;.GTE               = 5
+;.NE                = 6
+;.AND               = 7
+;.OR                = 8
+;.NOT               = 9
+
 .macro VM_RPN
         .db OP_VM_RPN
 .endm

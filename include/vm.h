@@ -9,8 +9,10 @@
 
 #include <stdio.h>
 
+BANKREF_EXTERN(VM_MAIN)
+
 #if defined(NINTENDO)
-#define STEP_FUNC_ATTR OLDCALL PRESERVES_REGS(b, c) 
+#define STEP_FUNC_ATTR
 typedef uint16_t DUMMY0_t;
 typedef uint16_t DUMMY1_t;
 #elif defined(SEGA)
@@ -22,8 +24,9 @@ typedef uint16_t DUMMY1_t;
 typedef void * SCRIPT_CMD_FN;
 
 typedef struct _SCRIPT_CMD {
-  SCRIPT_CMD_FN fn;  
-  uint8_t args_len;
+    SCRIPT_CMD_FN fn;
+    uint8_t fn_bank;
+    uint8_t args_len;
 } SCRIPT_CMD;
 
 #define FAR_CALL_EX(addr, seg, typ, ...) (__call_banked_addr=(addr),__call_banked_bank=(seg),((typ)(&__call__banked))(__VA_ARGS__))
@@ -72,16 +75,17 @@ typedef struct SCRIPT_CTX {
 #define VM_OP_NE  6
 #define VM_OP_AND 7
 #define VM_OP_OR  8
+#define VM_OP_NOT 9
 
 // shared context memory
 extern uint16_t script_memory[VM_HEAP_SIZE + (VM_MAX_CONTEXTS * VM_CONTEXT_STACK_SIZE)];  // maximum stack depth is 16 words
 
-// contexts for executing scripts 
+// contexts for executing scripts
 // ScriptRunnerInit(), ExecuteScript(), ScriptRunnerUpdate() manipulate these contexts
 extern SCRIPT_CTX CTXS[VM_MAX_CONTEXTS];
 extern SCRIPT_CTX * first_ctx, * free_ctxs;
 
-// lock state 
+// lock state
 extern uint8_t vm_lock_state;
 // loaded state
 extern uint8_t vm_loaded_state;
@@ -128,7 +132,9 @@ void script_runner_init(uint8_t reset) BANKED;
 // execute a script in the new allocated context
 SCRIPT_CTX * script_execute(uint8_t bank, uint8_t * pc, uint16_t * handle, uint8_t nargs, ...) BANKED;
 // terminate script by ID; returns non zero if no such thread is running
-uint8_t script_terminate(uint8_t ID) BANKED; 
+uint8_t script_terminate(uint8_t ID) BANKED;
+// detach script from the monitoring handle
+uint8_t script_detach_hthread(uint8_t ID) BANKED;
 
 #define RUNNER_DONE 0
 #define RUNNER_IDLE 1
