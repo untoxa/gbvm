@@ -1,11 +1,11 @@
 .include "vm.i"
-        
+
 .globl b_wait_frames, _wait_frames
 
 ; for testing direct memory access
 .globl _ACTORS
 
-; these definitions should be put into some common include where game types are defined 
+; these definitions should be put into some common include where game types are defined
 actor_t.x       = 0
 actor_t.y       = 2
 actor_t.ID      = 4
@@ -17,6 +17,10 @@ ___bank_BYTECODE = 3
 .globl ___bank_BYTECODE
 
 _BYTECODE::
+        VM_PUSH_CONST           10
+        VM_CALL_NATIVE          b_my_native_function, _my_native_function
+        VM_POP                  1
+
         VM_GET_SYSTIME  2               ; sys_time(&global[2])
         VM_GET_INT16    0, ^/(_ACTORS + (sizeof_actor_t * 1) + actor_t.ID)/     ; global[0] = ACTORS[1].ID
 
@@ -45,7 +49,7 @@ _BYTECODE::
         VM_CALL         2$              ; near call
         VM_LOOP         .ARG0, 1$, 1    ; loop to 1$; use *(SP-1) as counter; cleanup counter from stack after
 
-        VM_PUSH         0               ; placeholder for thread handle
+        VM_PUSH_CONST   0               ; placeholder for thread handle
         VM_BEGINTHREAD  ___bank_THREAD1, _THREAD1, .ARG0, 1     ; start a thread, pass copy of .ARG0 as a parameter into thread locals
         .dw .ARG0
 
@@ -53,8 +57,8 @@ _BYTECODE::
         .dw .ARG0
         .asciz "hThread: %d"
 
-        VM_PUSH         3               ; value A to compare
-        VM_PUSH         3               ; value B to compare
+        VM_PUSH_CONST   3               ; value A to compare
+        VM_PUSH_CONST   3               ; value B to compare
 
         VM_PUSHVALUE    .ARG1           ; test pushvalue, value == 3 must be pushed
 5$:
@@ -69,10 +73,10 @@ _BYTECODE::
         VM_DEBUG        0
         .asciz "ok: ARG0 == ARG1"
 4$:
-        VM_PUSH         50
+        VM_PUSH_CONST   50
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
 
-;        VM_TERMINATE    .ARG0           ; kill thread (rest of threadfunc won't execute) 
+;        VM_TERMINATE    .ARG0           ; kill thread (rest of threadfunc won't execute)
 
         VM_DEBUG        0
         .asciz "wait for join()"
@@ -81,9 +85,9 @@ _BYTECODE::
         VM_DEBUG        0
         .asciz "thread joined"
 
-        VM_PUSH         0               ; allocate tmp on stack (alias: .ARG0)
+        VM_PUSH_CONST   0               ; allocate tmp on stack (alias: .ARG0)
         VM_GET_SYSTIME  .ARG0           ; sys_time(&tmp)
-        
+
         VM_RPN                          ; push(tmp - global[2])
             .R_REF      .ARG0
             .R_REF      3
@@ -97,7 +101,7 @@ _BYTECODE::
         VM_POP          2               ; dispose 2 values on stack: result of VM_RPN and tmp
         VM_STOP                         ; stop main
 2$:
-        VM_PUSH         ___bank_BYTECODE
+        VM_PUSH_CONST   ___bank_BYTECODE
         VM_DEBUG        1
         .dw .ARG0
         .asciz "wait(1s) bank: %d"
@@ -107,20 +111,20 @@ _BYTECODE::
 
 ___bank_THREAD1 = 3
 _THREAD1::
-        VM_PUSH         0               ; reserve place on VM stack for the value
-        VM_GET_TLOCAL   .ARG0, 0        ; we have a thread local that is initialized by caller, get value of that local 
+        VM_PUSH_CONST   0               ; reserve place on VM stack for the value
+        VM_GET_TLOCAL   .ARG0, 0        ; we have a thread local that is initialized by caller, get value of that local
         VM_DEBUG        1               ; print that thread local variable
         .dw .ARG0
         .asciz "Trd started, ID:%d"
                                                 ; switch(.ARG0)
-        VM_IF_CONST .EQ .ARG0, 2, 1$, 0         ;     case 2: goto $1         
+        VM_IF_CONST .EQ .ARG0, 2, 1$, 0         ;     case 2: goto $1
         VM_IF_CONST .EQ .ARG0, 4, 2$, 0         ;     case 4: goto $2
         VM_IF_CONST .EQ .ARG0, 7, 3$, 0         ;     case 7: goto $3
-                                                ;     default: 
+                                                ;     default:
         VM_DEBUG        0
         .asciz "ID not in [2,4,7]"
         VM_JUMP         4$
-1$:     
+1$:
         VM_DEBUG        0
         .asciz "case ID == 2"
         VM_JUMP         4$
@@ -145,9 +149,9 @@ _THREAD1::
 
         VM_DEBUG        0
         .asciz "wait(1.5s) thread"
-        VM_PUSH         90              ; 60 frames == 1s
+        VM_PUSH_CONST   90              ; 60 frames == 1s
         VM_INVOKE       b_wait_frames, _wait_frames, 1, .ARG0  ; call wait_frames(); dispose 1 parameter on stack after
-        VM_PUSH         75
+        VM_PUSH_CONST   75
         VM_CALL_FAR     ___bank_libfuncs, _LIB01
         VM_DEBUG        0
         .asciz "Trd terminated"
@@ -159,9 +163,9 @@ ___bank_libfuncs = 1
 .globl ___bank_libfuncs
 
 _LIB01::
-        VM_PUSH         ___bank_libfuncs
+        VM_PUSH_CONST   ___bank_libfuncs
         VM_DEBUG        2
-        .dw .ARG3, .ARG0                ; stack contains (reverse order): local variable (-1), ret bank(-2), ret address(-3), PARAM0(-4) 
+        .dw .ARG3, .ARG0                ; stack contains (reverse order): local variable (-1), ret bank(-2), ret address(-3), PARAM0(-4)
         .asciz "LIB01(%d) bank: %d"
         VM_POP          1               ; dispose bank number on stack before far return
         VM_RET_FAR_N    1               ; return from far call and dispose 1 argument on stack

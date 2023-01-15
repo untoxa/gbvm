@@ -11,6 +11,15 @@
 
 BANKREF_EXTERN(VM_MAIN)
 
+#define FN_ARG0 -1
+#define FN_ARG1 -2
+#define FN_ARG2 -3
+#define FN_ARG3 -4
+#define FN_ARG4 -5
+#define FN_ARG5 -6
+#define FN_ARG6 -7
+#define FN_ARG7 -8
+
 #if defined(NINTENDO)
 #define STEP_FUNC_ATTR
 typedef uint16_t DUMMY0_t;
@@ -31,6 +40,8 @@ typedef struct _SCRIPT_CMD {
 
 #define FAR_CALL_EX(addr, seg, typ, ...) (__call_banked_addr=(addr),__call_banked_bank=(seg),((typ)(&__call__banked))(__VA_ARGS__))
 typedef uint8_t (*SCRIPT_UPDATE_FN)(void * THIS, uint8_t start, uint16_t * stack_frame) OLDCALL BANKED;
+
+#define VM_REF_TO_PTR(idx) (void *)(((idx) < 0) ? THIS->stack_ptr + (idx) : script_memory + (idx))
 
 typedef struct SCRIPT_CTX {
     const uint8_t * PC;
@@ -94,34 +105,6 @@ extern uint8_t vm_exception_code;
 extern uint8_t vm_exception_params_length;
 extern uint8_t vm_exception_params_bank;
 extern const void * vm_exception_params_offset;
-
-// script core functions
-void vm_push(SCRIPT_CTX * THIS, uint16_t value) OLDCALL BANKED;
-uint16_t vm_pop(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED;
-void vm_call(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED;
-void vm_ret(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED;
-void vm_call_far(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * pc) OLDCALL BANKED;
-void vm_ret_far(SCRIPT_CTX * THIS, uint8_t n) OLDCALL BANKED;
-void vm_loop(SCRIPT_CTX * THIS, int16_t idx, uint8_t * pc, uint8_t n) OLDCALL BANKED;
-void vm_jump(SCRIPT_CTX * THIS, uint8_t * pc) OLDCALL BANKED;
-void vm_systime(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED;
-void vm_invoke(SCRIPT_CTX * THIS, uint8_t bank, uint8_t * fn, uint8_t nparams, int16_t idx) OLDCALL BANKED;
-void vm_beginthread(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, uint8_t bank, uint8_t * pc, int16_t idx, uint8_t nargs) OLDCALL NONBANKED;
-void vm_if(SCRIPT_CTX * THIS, uint8_t condition, int16_t idxA, int16_t idxB, uint8_t * pc, uint8_t n) OLDCALL BANKED;
-void vm_if_const(SCRIPT_CTX * THIS, uint8_t condition, int16_t idxA, int16_t B, uint8_t * pc, uint8_t n) OLDCALL BANKED;
-void vm_debug(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, uint8_t nargs) OLDCALL NONBANKED;
-void vm_pushvalue(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED;
-void vm_reserve(SCRIPT_CTX * THIS, int8_t ofs) OLDCALL BANKED;
-void vm_set(SCRIPT_CTX * THIS, int16_t idxA, int16_t idxB) OLDCALL BANKED;
-void vm_set_const(SCRIPT_CTX * THIS, int16_t idx, uint16_t value) OLDCALL BANKED;
-void vm_rpn(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS) OLDCALL NONBANKED;
-void vm_join(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED;
-void vm_terminate(SCRIPT_CTX * THIS, int16_t idx) OLDCALL BANKED;
-void vm_idle(SCRIPT_CTX * THIS) OLDCALL BANKED;
-void vm_get_tlocal(SCRIPT_CTX * THIS, int16_t idxA, int16_t idxB) OLDCALL BANKED;
-void vm_get_uint8(SCRIPT_CTX * THIS, int16_t idxA, uint8_t * addr) OLDCALL BANKED;
-void vm_get_int8(SCRIPT_CTX * THIS, int16_t idxA, int8_t * addr) OLDCALL BANKED;
-void vm_get_int16(SCRIPT_CTX * THIS, int16_t idxA, int16_t * addr) OLDCALL BANKED;
 
 // return zero if script end
 // bank with VM code must be active
