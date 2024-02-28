@@ -1260,7 +1260,7 @@ uint8_t script_detach_hthread(uint8_t ID) BANKED {
 
 // process all contexts
 // executes one command in each active context
-uint8_t script_runner_update() NONBANKED {
+uint8_t script_runner_update(void) NONBANKED {
     static uint8_t waitable;
     static uint8_t counter;
     // if locked then execute last context until it is unlocked or terminated
