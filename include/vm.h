@@ -140,6 +140,6 @@ uint8_t script_detach_hthread(uint8_t ID) BANKED;
 #define EXCEPTION_CODE_NONE 0
 
 // process all contexts
-uint8_t script_runner_update() NONBANKED;
+uint8_t script_runner_update(void) NONBANKED;
 
 #endif

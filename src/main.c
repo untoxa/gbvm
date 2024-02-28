@@ -20,7 +20,7 @@ const actor_t ACTORS[2] = {
     }
 };
 
-void process_VM() {
+void process_VM(void) {
     while (TRUE) {
         switch (script_runner_update()) {
             case RUNNER_DONE: return;
@@ -30,7 +30,7 @@ void process_VM() {
     }
 }
 
-void main() {
+void main(void) {
     font_init();
     font_set(font_load(font_spect));
     
