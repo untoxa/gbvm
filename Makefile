@@ -10,7 +10,7 @@ LCC = $(GBDK_HOME)bin/lcc
 # Possible are: gb gbc pocket sms gg
 #TARGETS=gb pocket sms gg
 #TARGETS=gb megaduck gg sms pocket
-TARGETS=gb gg
+TARGETS=gb gg nes
 
 # Configure platform specific LCC flags here:
 LCCFLAGS_gb      = -Wl-yt0x19 -Wm-yS -Wm-yn"$(PROJECTNAME)"
@@ -18,6 +18,7 @@ LCCFLAGS_pocket  = -Wl-yt0x19 -Wm-yS -Wm-yn"$(PROJECTNAME)"
 LCCFLAGS_duck    = -Wl-yt0x19 -Wm-yS -Wm-yn"$(PROJECTNAME)"
 LCCFLAGS_sms     =
 LCCFLAGS_gg      =
+LCCFLAGS_nes     = -Wl-yt0x19 -Wm-yS -Wm-yn"$(PROJECTNAME)"
 
 LCCFLAGS += $(LCCFLAGS_$(EXT)) # This adds the current platform specific LCC Flags
 
@@ -27,6 +28,10 @@ LCCFLAGS += -Wl-j -Wm-yoA -autobank -Wb-ext=.rel
 # LCCFLAGS += -v     # Uncomment for lcc verbose output
 
 CFLAGS = -Wf-Iinclude -Wa-Iinclude
+# NES: Reduce RAM usage to fit within console RAM
+ifeq ($(EXT),nes)
+CFLAGS += -Wp-DVM_MAX_CONTEXTS=4 -Wp-DVM_CONTEXT_STACK_SIZE=32 -Wp-DVM_HEAP_SIZE=128
+endif
 
 # You can set the name of the ROM file here
 PROJECTNAME = VM_demo
